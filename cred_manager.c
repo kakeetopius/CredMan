@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <termios.h>
+#include "secure.h"
+
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size);
 void create_pass(char* pass_for);
@@ -14,6 +17,7 @@ void get_pass(char* passwd_for);
 void change_pass(char* passwd_for);
 void get_pass_string(char* buff, int buff_size);
 void delete_account(char* account);
+
 
 #ifdef _WIN32
     #define CREDS_FILE "C:\\Documents\\creds.txt"
@@ -29,12 +33,59 @@ void delete_account(char* account);
 #define d_flag 0x10  //00010000
 
 int main(int argc, char* argv[]) {
+    /*Removing echo on terminal*/
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag = ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+
+    char pass[20];
+    printf("Enter Master password: \n");
+    scanf("%19s", pass);
+    /*Restoring echo on terminal*/
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    char* hash = get_key(pass);
+    char* env = getenv("CMP");
+    if(env == NULL) {
+        printf("Cannot get hash\n");
+        return -1;
+    }
+    if(strcmp(env, hash) != 0) {
+        printf("Wrong Password\n");
+        exit(-1);
+    }
+
+    unsigned char key[16] = {0};
+    unsigned char iv[16] = {0};
+
+    memcpy(key, hash, 16);
+    memcpy(iv, (hash+17), 16);
+
+    set_key(key);
+    set_iv(iv);
+    int stat;
+
+    stat = decrypt_file(CREDS_FILE);
+    if (stat != 0) {
+        printf("Error decrypting\n");
+        return 0;
+    }
+
     char input_buff[100];
     memset(input_buff, 0, 100);
     int flags = handle_input(argc, argv, input_buff, 99);
-
-    if(flags & n_flag) {
+    
+    if(flags == -1) {
+        return -1;
+    }
+    else if(flags & n_flag) {
         create_pass(input_buff);
+    }
+    else if(flags & l_flag) {
+        list_accounts();
     }
     else if(flags & s_flag) {
         get_pass(input_buff);
@@ -68,6 +119,11 @@ int main(int argc, char* argv[]) {
             printf("Not Deleted\n");
         }
         #endif
+    }
+    
+    stat = encrypt_file(CREDS_FILE);
+    if(stat != 0) {
+        printf("Error encrypting\n");
     }
     return 0;
 }
@@ -128,6 +184,7 @@ void change_pass(char* pass_for) {
         }
         unlink(temp_file);
     #endif
+    
 }
 
 void delete_account(char* account) {
@@ -174,11 +231,11 @@ void delete_account(char* account) {
         }
         remove(CREDS_FILE);
     #else
-        if(rename(temp_file, CREDS_FILE) != 0) {
-            perror("Error changing file: ");
-            return;
-        }
-        unlink(temp_file);
+    if(rename(temp_file, CREDS_FILE) != 0) {
+        perror("Error changing file: ");
+        return;
+    }
+    unlink(temp_file);
     #endif
     
     printf("Account Deleted\n");
@@ -308,7 +365,7 @@ int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
                             
     if (argc < 2 || argc > 3) {
         printf("%s", help_message);
-        exit(-1);
+        return -1;
     }
 
     int flags = 0;
@@ -322,8 +379,8 @@ int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
                 case 'c': flags = flags | c_flag; break;
                 case 'l': flags = flags | l_flag; break;
                 case 'd': flags = flags | d_flag; break;
-                case 'h': printf("%s", help_message); exit(0);
-                default: printf("Unknown option: %c\n%s", *(p+1), help_message); exit(-1);
+                case 'h': printf("%s", help_message); return -1;
+                default: printf("Unknown option: %c\n%s", *(p+1), help_message); return -1;
             }
         }
     }
@@ -331,23 +388,21 @@ int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
 
     if (flags != c_flag && flags!= s_flag && flags != n_flag && flags != l_flag && flags != d_flag) {
         printf("%s", help_message);
-        exit(-1);
+        return -1;
     }
-    
-    if (flags & l_flag) {
-        list_accounts();
-        exit(0);
+    else if(flags & l_flag) {
+        return flags;
     }
     else{
         if (argc != 3) {
             printf("%s", help_message);
-            exit(-1);
+            return -1;
         }
         int input_len = strlen(argv[2]);
 
         if (input_len > buff_size) {
             printf("The input string is too long\n");
-            exit(-1);
+            return -1;
         }
 
         snprintf(input_buff, buff_size, "%s", argv[2]); 
