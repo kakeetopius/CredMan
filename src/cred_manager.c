@@ -4,8 +4,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <termios.h>
-#include "secure.h"
+#ifndef _WIN32
+    #include <termios.h>
+#endif
+
+#include "../includes/secure.h"
 
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size);
@@ -33,31 +36,49 @@ void delete_account(char* account);
 #define d_flag 0x10  //00010000
 
 int main(int argc, char* argv[]) {
+    #ifndef _WIN32
     /*Removing echo on terminal*/
     struct termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag = ~ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-
+    #endif
 
     char pass[20];
-    printf("Enter Master password: \n");
-    scanf("%19s", pass);
-    /*Restoring echo on terminal*/
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-
-    char* hash = get_key(pass);
+    
     char* env = getenv("CMP");
     if(env == NULL) {
         printf("Cannot get hash\n");
         return -1;
     }
-    if(strcmp(env, hash) != 0) {
-        printf("Wrong Password\n");
-        exit(-1);
+    int tries = 3;
+    char* hash = NULL;
+    do {
+        printf("%s: \n", tries == 3 ? "Enter Master Password" : "Wrong Password Try Again");
+        scanf("%19s", pass);
+        hash = get_key(pass);
+        tries--;
+        if(strcmp(env, hash) == 0) {
+            break;
+        }
     }
+    while(tries > 0);
 
+    if(tries == 0) {
+        printf("Too many tries\n");
+        #ifndef _WIN32 
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt); 
+        #endif
+        free(hash);
+        return -1;
+    }
+    
+    #ifndef _WIN32
+    /*Restoring echo on terminal*/
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    #endif
+    
     unsigned char key[16] = {0};
     unsigned char iv[16] = {0};
 
@@ -68,19 +89,23 @@ int main(int argc, char* argv[]) {
     set_iv(iv);
     int stat;
 
-    stat = decrypt_file(CREDS_FILE);
-    if (stat != 0) {
-        printf("Error decrypting\n");
-        return 0;
-    }
-
     char input_buff[100];
     memset(input_buff, 0, 100);
     int flags = handle_input(argc, argv, input_buff, 99);
-    
     if(flags == -1) {
+        free(hash);
         return -1;
     }
+
+    stat = decrypt_file(CREDS_FILE);
+
+    if (stat != 0) {
+        printf("Error decrypting\n");
+        free(hash);
+        return 0;
+    }
+    
+    
     else if(flags & n_flag) {
         create_pass(input_buff);
     }
@@ -122,6 +147,7 @@ int main(int argc, char* argv[]) {
     }
     
     stat = encrypt_file(CREDS_FILE);
+    free(hash);
     if(stat != 0) {
         printf("Error encrypting\n");
     }
@@ -137,12 +163,7 @@ void change_pass(char* pass_for) {
     FILE* temp;
     FILE* file = fopen(CREDS_FILE, "r");
     
-    #ifdef _WIN32
-        temp = fopen("temp.txt", "a+");
-    #else
-        char* temp_file = "/home/kapila/Windows_Files/temp.txt";
-        temp = fopen(temp_file, "a+");
-    #endif
+    temp = fopen(TEMPFILE, "a+");
 
     if(file == NULL || temp == NULL) {
         perror("Error opening file: ");
@@ -173,16 +194,16 @@ void change_pass(char* pass_for) {
 
     #ifdef _WIN32
         unlink(CREDS_FILE);
-        if(rename("temp.txt", CREDS_FILE) != 0) {
+        if(rename(TEMPFILE, CREDS_FILE) != 0) {
             perror("Error changing file: ");
             return;
         }
     #else
-        if(rename(temp_file, CREDS_FILE) != 0) {
+        if(rename(TEMPFILE, CREDS_FILE) != 0) {
             perror("Error changing file: ");
             return;
         }
-        unlink(temp_file);
+        unlink(TEMPFILE);
     #endif
     
 }
@@ -194,14 +215,7 @@ void delete_account(char* account) {
     }
 
     FILE* file = fopen(CREDS_FILE, "r");
-    FILE* temp;
-
-    #ifdef _WIN32
-        temp = fopen("temp.txt", "a+");
-    #else
-        char* temp_file = "/home/kapila/Windows_Files/temp.txt";
-        temp = fopen(temp_file, "a+");
-    #endif
+    FILE* temp =  fopen(TEMPFILE, "a+");
 
 
     if(file == NULL || temp == NULL) {
@@ -225,17 +239,17 @@ void delete_account(char* account) {
     fclose(file);
 
     #ifdef _WIN32
-        if(rename("temp.txt", CREDS_FILE) != 0) {
+        if(rename(TEMPFILE, CREDS_FILE) != 0) {
             perror("Error changing file: ");
             return;
         }
         remove(CREDS_FILE);
     #else
-    if(rename(temp_file, CREDS_FILE) != 0) {
+    if(rename(TEMPFILE, CREDS_FILE) != 0) {
         perror("Error changing file: ");
         return;
     }
-    unlink(temp_file);
+    unlink(TEMPFILE);
     #endif
     
     printf("Account Deleted\n");
@@ -355,12 +369,12 @@ void split(char* tosplit, char* arr1, int arr1_size, char* arr2, int arr2_size, 
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
     
-    char* help_message = "Usage: ./cred_manager -n <account> to generate new password for given account\n"
-                         "OR:    ./cred_manager -s <account> to search and get password for given account\n"
-                         "OR:    ./cred_manager -c <account> to change password for given account\n"
-                         "OR:    ./cred_manager -l to list all accounts and passwords\n"
-                         "OR:    ./cred_manager -h to display this message\n"
-                         "OR:    ./cred_manager -d <account>to delete account given";
+    char* help_message = "Usage: ./cman -n <account> to generate new password for given account\n"
+                         "OR:    ./cman -s <account> to search and get password for given account\n"
+                         "OR:    ./cman -c <account> to change password for given account\n"
+                         "OR:    ./cman -l to list all accounts and passwords\n"
+                         "OR:    ./cman -h to display this message\n"
+                         "OR:    ./cman -d <account> to delete account given";
 
                             
     if (argc < 2 || argc > 3) {

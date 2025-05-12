@@ -7,13 +7,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "../includes/secure.h"
+
 #define SALT_SIZE 22
 #define AES_BLOCK_SIZE 16
 #define CHUNK_SIZE 20
-
-char* get_key(char* pass);
-int encrypt_file(char* filename);
-int decrypt_file(char* filename);
 
 const unsigned char* key;
 const unsigned char* iv;
@@ -45,13 +43,14 @@ int encrypt_file(char* filename) {
         printf("Error setting up encryption\n");
         return -1;
     }
-
-    char* temp_file = "/home/kapila/Windows_Files/temp.txt";
+   
     FILE* file = fopen(filename, "rb");
-    FILE* out = fopen(temp_file, "wb");
+    FILE* out = fopen(TEMPFILE, "wb");
+    FILE* bkp = fopen(BACKUP, "wb");
 
-    if(file == NULL || out == NULL) {
+    if(file == NULL || out == NULL || bkp == NULL) {
         perror("Error opening file ");
+        return -1;
     }
 
     unsigned char plaintext[CHUNK_SIZE];
@@ -62,18 +61,20 @@ int encrypt_file(char* filename) {
         EVP_EncryptUpdate(ctx, ciphertext, &cipher_len, plaintext, read_bytes);
         total_len += cipher_len;
         fwrite(ciphertext, 1, cipher_len, out);
+        fwrite(ciphertext, 1, cipher_len, bkp);
     }
 
     EVP_EncryptFinal(ctx, ciphertext, &cipher_len);
     total_len += cipher_len;
     fwrite(ciphertext, 1, cipher_len, out);
+    fwrite(ciphertext, 1, cipher_len, bkp);
 
-    if(rename(temp_file, filename) != 0) {
+    if(rename(TEMPFILE, filename) != 0) {
         perror("Error changing file: ");
         return -1;
     }
 
-    unlink(temp_file);
+    unlink(TEMPFILE);
 
     fclose(file);
     fclose(out);
@@ -104,12 +105,11 @@ int decrypt_file(char* filename) {
         return -1;
     }
 
-    char* temp_file = "/home/kapila/Windows_Files/temp.txt";
     FILE* ifile = fopen(filename, "rb");
-    FILE* ofile = fopen(temp_file, "wb");
+    FILE* ofile = fopen(TEMPFILE, "wb");
     if(ifile == NULL || ofile == NULL) {
         perror("Error opening file ");
-        return -1;
+        return 0;
     }
     
     int read_bytes, plain_len, total_len;
@@ -126,12 +126,12 @@ int decrypt_file(char* filename) {
     total_len += plain_len;
     fwrite(plaintext, 1, plain_len, ofile);
 
-    if(rename(temp_file, filename) != 0) {
+    if(rename(TEMPFILE, filename) != 0) {
         perror("Error changing file: ");
         return -1;
     }
 
-    unlink(temp_file);
+    unlink(TEMPFILE);
     
     fclose(ofile);
     fclose(ifile);
