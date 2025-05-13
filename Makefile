@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS =  -Wall -g -Iincludes
 LIBS = -lcrypto 
 
-SRCS = src/cred_manager.c 
+SRCS = src/cred_manager.c src/secure.c
 OBJS = $(SRCS:src/%.c=obj/%.o)
 
 OBJDIR = obj

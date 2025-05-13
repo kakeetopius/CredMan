@@ -4,47 +4,18 @@
 #include <stdlib.h>
 #include <time.h>
 #ifndef _WIN32
+    #include <unistd.h>
     #include <termios.h>
 #endif
 
 #include "../includes/secure.h"
-
-
-int handle_input(int argc, char* argv[], char* input_buff, int buff_size);
-void create_pass(char* pass_for, char* pass);
-void list_accounts();
-int account_exists(char* account);
-void get_pass(char* passwd_for);
-void change_pass(char* pass_for, char* pass);
-void get_pass_string(char* buff, int buff_size);
-void delete_account(char* account);
-void change_pass_from_user(char* pass_for);
-void add_pass_from_user(char* pass_for);
-
-
-#ifdef _WIN32
-    #define CREDS_FILE "C:\\Documents\\creds.txt"
-#else
-   // #define CREDS_FILE "/home/kapila/Windows_Files/Documents/creds.txt"
-   #define CREDS_FILE "../creds.txt"
-#endif
-
-/*----------input flags----------*/
-#define n_flag 0x01  //00000001
-#define s_flag 0x02  //00000010
-#define c_flag 0x04  //00000100
-#define l_flag 0x08  //00001000
-#define d_flag 0x10  //00010000
-#define i_flag 0x20  //00100000
-#define a_flag 0x40  //01000000
-#define o_flag 0x80  //10000000
-
+#include "../includes/main.h"
 
 /*The File Pointer for the credit file*/
 FILE* creds_file = NULL;
 
 int main(int argc, char* argv[]) {
-    /*#ifndef _WIN32
+    #ifndef _WIN32
     //Removing echo on terminal
         struct termios oldt, newt;
         tcgetattr(STDIN_FILENO, &oldt);
@@ -54,26 +25,20 @@ int main(int argc, char* argv[]) {
     #endif
 
     char pass[20];
-    
-    char* env = getenv("CMP");
-    if(env == NULL) {
-        printf("Cannot get hash\n");
-        return -1;
-    }
-    int tries = 3;
-    char* hash = NULL;
+
+    int tries = 3;   
     do {
-        printf("%s: \n", tries == 3 ? "Enter Master Password" : "Wrong Password Try Again");
+        printf("%s\n", tries == 3 ? "Enter Master Password " : "Wrong Password Try Again ");
         scanf("%19s", pass);
         tries--;
-        if(strcmp(env, hash) == 0) {
+        if(strcmp(pass, "Kapila.707403") == 0) {
             break;
         }
     }
     while(tries > 0);
 
     if(tries == 0) {
-        printf("Too many tries\n");
+        printf("Too many tries");
         #ifndef _WIN32 
             tcsetattr(STDIN_FILENO, TCSANOW, &oldt); 
         #endif
@@ -84,19 +49,34 @@ int main(int argc, char* argv[]) {
     //Restoring echo on terminal
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     #endif
-    */
+    
 
+    
     /*Opening credential file*/
-    creds_file = fopen(CREDS_FILE, "rw");
-    if (creds_file == NULL) {
+    FILE* cred_file = fopen(CREDS_FILE, "rw");
+    if (cred_file == NULL) {
         perror("Error opening credential file ");
         return -1;
     }
-    
+
+    /*Getting key*/
+    int key = encrypt_key(pass);
+
+    /*Decrypting file*/
+    decrypt_file(key, cred_file);
+
+    creds_file = fopen(TEMPFILE, "rw");
+    if (creds_file == NULL) {
+        perror("Error opening credential file(1) ");
+        return -1;
+    }
+
+
     char input_buff[100];
     memset(input_buff, 0, 100);
     int flags = handle_input(argc, argv, input_buff, 99);
     if(flags == -1) {
+        fclose(creds_file);
         return -1;
     }
     else if(flags & n_flag) {
@@ -140,6 +120,10 @@ int main(int argc, char* argv[]) {
             printf("Not Deleted\n");
         }
     }
+
+    encrypt_file(key, creds_file);
+    fclose(cred_file);
+    fclose(creds_file);
     
     return 0;
 }
@@ -165,11 +149,10 @@ void change_pass(char* pass_for, char* password) {
     }
 
     FILE* temp;
-    FILE* file = fopen(CREDS_FILE, "r");
     
     temp = fopen(TEMPFILE, "a+");
 
-    if(file == NULL || temp == NULL) {
+    if(temp == NULL) {
         perror("Error opening file: ");
         return;
     }
@@ -178,7 +161,7 @@ void change_pass(char* pass_for, char* password) {
     char* acc = NULL;
     char* pass = NULL;
 
-    while(fgets(buff, 100, file) != NULL) {
+    while(fgets(buff, 100, creds_file) != NULL) {
         acc = strtok(buff, ":");
         pass = strtok(NULL, "\n");
 
@@ -200,7 +183,7 @@ void change_pass(char* pass_for, char* password) {
         printf("New Password: %s\n", password);
     }
     fclose(temp);
-    fclose(file);
+    
 
     if(remove(CREDS_FILE) != 0) {
         perror("Error changing password(1) ");
@@ -218,11 +201,10 @@ void delete_account(char* account) {
         return;
     }
 
-    FILE* file = fopen(CREDS_FILE, "r");
     FILE* temp =  fopen(TEMPFILE, "a+");
 
 
-    if(file == NULL || temp == NULL) {
+    if(temp == NULL) {
         perror("Error opening file: ");
         return;
     }
@@ -231,7 +213,7 @@ void delete_account(char* account) {
     char* acc = NULL;
     char* pass = NULL;
 
-    while(fgets(buff, 100, file) != NULL) {
+    while(fgets(buff, 100, creds_file) != NULL) {
         acc = strtok(buff, ":");
         pass = strtok(NULL, "\n");
         if(strcmp(acc, account) == 0) {
@@ -241,7 +223,6 @@ void delete_account(char* account) {
     }
 
     fclose(temp);
-    fclose(file);
 
     if(remove(CREDS_FILE) != 0) {
         perror("Error changing password(1): ");
@@ -256,12 +237,6 @@ void delete_account(char* account) {
 }
 
 void create_pass(char* pass_for, char* pass) {
-    FILE* file = NULL;
-    file = fopen(CREDS_FILE, "a+");
-    if (file == NULL) {
-        perror("Error opening file");
-        return;
-    }
 
     if(account_exists(pass_for)) {
         printf("Password For %s already exists\n", pass_for);
@@ -272,14 +247,12 @@ void create_pass(char* pass_for, char* pass) {
         char passwd[16];
         get_pass_string(passwd, 16);
         printf("New Password for %s: %s\n", pass_for, passwd);
-        fprintf(file, "%s:%s\n", pass_for, passwd);
+        fprintf(creds_file, "%s:%s\n", pass_for, passwd);
     }
     else {
         printf("New Password for %s: %s\n", pass_for, pass);
-        fprintf(file, "%s:%s\n", pass_for, pass);
+        fprintf(creds_file, "%s:%s\n", pass_for, pass);
     }
-   
-    fclose(file);
 }
 
 void get_pass(char* pass_for) {
@@ -287,13 +260,8 @@ void get_pass(char* pass_for) {
     char* acc = NULL;
     char* pass = NULL;
 
-    FILE* file = fopen(CREDS_FILE, "r");
-    if (file == NULL) {
-        perror("Error opening credential file: ");
-        return;
-    }
     
-    while(fgets(buff, 100, file) != NULL) {
+    while(fgets(buff, 100, creds_file) != NULL) {
         acc = strtok(buff, ":");
         pass = strtok(NULL, "\n");
     
@@ -306,16 +274,11 @@ void get_pass(char* pass_for) {
 }
 
 int account_exists(char* account) {
-    FILE* file = fopen(CREDS_FILE, "r");
-    if (file == NULL) {
-        perror("Error opening credential file: ");
-        return -1;
-    }
 
     char buff[200];
     char* acc = NULL;
 
-    while(fgets(buff, 199, file) != NULL) {
+    while(fgets(buff, 199, creds_file) != NULL) {
         acc = strtok(buff, ":");
         if(strcmp(account, acc) == 0) {
             return 1;
@@ -323,20 +286,14 @@ int account_exists(char* account) {
     }
     
     return 0;
-    fclose(file);
 }
 
 void list_accounts() {
-    FILE* file = fopen(CREDS_FILE, "r");
-    if (file == NULL) {
-        perror("Error opening credential file: ");
-        return;
-    }
     char buff[200];
     char* acc = NULL;
     char* pass = NULL;
 
-    while(fgets(buff, 199, file) != NULL) {
+    while(fgets(buff, 199, creds_file) != NULL) {
         acc = strtok(buff, ":");
         pass = strtok(NULL, "\n");
         
@@ -345,7 +302,6 @@ void list_accounts() {
         printf("\n");
     }
     
-    fclose(file);
 }
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
