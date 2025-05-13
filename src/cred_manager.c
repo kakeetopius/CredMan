@@ -10,73 +10,27 @@
 
 #include "../includes/secure.h"
 #include "../includes/main.h"
+#include "../includes/account.h"
 
-/*The File Pointer for the credit file*/
-FILE* creds_file = NULL;
+/*----account list object-----*/
+Account_list a_lst = NULL;
 
 int main(int argc, char* argv[]) {
-    #ifndef _WIN32
-    //Removing echo on terminal
-        struct termios oldt, newt;
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
-        newt.c_lflag = ~ECHO;
-        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    #endif
+    char pass[30] = {0};
+    int status;
 
-    char pass[20];
-
-    int tries = 3;   
-    do {
-        printf("%s\n", tries == 3 ? "Enter Master Password " : "Wrong Password Try Again ");
-        scanf("%19s", pass);
-        tries--;
-        if(strcmp(pass, "Kapila.707403") == 0) {
-            break;
-        }
-    }
-    while(tries > 0);
-
-    if(tries == 0) {
-        printf("Too many tries");
-        #ifndef _WIN32 
-            tcsetattr(STDIN_FILENO, TCSANOW, &oldt); 
-        #endif
-        return -1;
-    }
-    
-    #ifndef _WIN32
-    //Restoring echo on terminal
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    #endif
-    
-
-    
-    /*Opening credential file*/
-    FILE* cred_file = fopen(CREDS_FILE, "rw");
-    if (cred_file == NULL) {
-        perror("Error opening credential file ");
-        return -1;
-    }
-
-    /*Getting key*/
-    int key = encrypt_key(pass);
-
-    /*Decrypting file*/
-    decrypt_file(key, cred_file);
-
-    creds_file = fopen(TEMPFILE, "rw");
-    if (creds_file == NULL) {
-        perror("Error opening credential file(1) ");
-        return -1;
-    }
-
+    status = get_password(pass, sizeof(pass));
+    if (status != 0) return -1;
 
     char input_buff[100];
     memset(input_buff, 0, 100);
     int flags = handle_input(argc, argv, input_buff, 99);
+
+    status = initialize_accounts(pass);
+    
+    if (status != 0) return -1;
+
     if(flags == -1) {
-        fclose(creds_file);
         return -1;
     }
     else if(flags & n_flag) {
@@ -121,10 +75,96 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    encrypt_file(key, creds_file);
-    fclose(cred_file);
-    fclose(creds_file);
+    if ((flags&l_flag) || (flags&s_flag)) {
+        destroyAccList(a_lst);
+        return 0;
+    }
+
+    write_to_file(pass);
+    destroyAccList(a_lst);
+    return 0;
+}
+
+void write_to_file(char* pass) {
+     /*Opening credential file*/
+    FILE* cred_file = fopen(CREDS_FILE, "w");
+    if (cred_file == NULL) {
+        perror("Error opening credential file ");
+        return;
+    }
+
+    /*Getting key*/
+    int key = encrypt_key(pass);
+
+    char buff[100];
+    Acc_node n = NULL;
+    for(n = a_lst->head; n != NULL; n = n->next) {
+        snprintf(buff, 99, "%s:%s\n", n->name, n->password);
+        encrypt_line(key, buff);
+        fprintf(cred_file, "%s", buff);
+    }
     
+    fclose(cred_file);
+}   
+
+int initialize_accounts(char* pass) {
+    /*Opening credential file*/
+    FILE* cred_file = fopen(CREDS_FILE, "r");
+    if (cred_file == NULL) {
+        perror("Error opening credential file ");
+        return -1;
+    }
+    
+    /*Getting key*/
+    int key = encrypt_key(pass);
+    char* name;
+    char* passwd;
+    
+    /*--Account list---*/
+    a_lst = createAccList();
+    int index;
+    char buff[100];
+    while(fgets(buff, 99, cred_file) != NULL) {
+        index = strcspn(buff, "\n");
+        buff[index] = '\0';
+        decrypt_line(key, buff);
+        name = strtok(buff, ":");
+        if (name == NULL) {
+            printf("Error parsing credential file(1)\n");
+            return -1;
+        }
+        else {
+            passwd = strtok(NULL, ":");
+            if(passwd == NULL) {
+                printf("Error parsing credential file(2)\n");
+                return -1;
+            }
+        }
+        
+        insert_acc(a_lst, name, passwd);
+    } 
+    
+    fclose(cred_file);
+    return 0;
+}
+
+int get_password(char* buff, int buff_len) {
+
+    int tries = 3;   
+    do {
+        printf("%s: \n", tries == 3 ? "Enter Master Password " : "Wrong Password Try Again ");
+        fgets(buff, buff_len, stdin);
+        tries--;
+        if(strcmp(buff, "Kapila.707403\n") == 0) {
+            break;
+        }
+    }
+    while(tries > 0);
+
+    if(tries == 0) {
+        printf("Too many tries");
+        return -1;
+    }
     return 0;
 }
 
@@ -143,102 +183,43 @@ void add_pass_from_user(char* pass_for) {
 }
 
 void change_pass(char* pass_for, char* password) {
-    if(account_exists(pass_for) == 0) {
+    if(search_acc(a_lst, pass_for) != 0) {
         printf("Account doesn't exist\n");
         return;
     }
-
-    FILE* temp;
     
-    temp = fopen(TEMPFILE, "a+");
-
-    if(temp == NULL) {
-        perror("Error opening file: ");
-        return;
-    }
-
-    char buff[100];
-    char* acc = NULL;
-    char* pass = NULL;
-
-    while(fgets(buff, 100, creds_file) != NULL) {
-        acc = strtok(buff, ":");
-        pass = strtok(NULL, "\n");
-
-        if(strcmp(acc, pass_for) == 0) {
-            continue;
-        }
-        fprintf(temp, "%s:%s\n", acc, pass);
-    }
-
-   
     if(password == NULL) {
         char passwd[16];
         get_pass_string(passwd, 16);
-        fprintf(temp, "%s:%s\n", pass_for, passwd);
         printf("New Password: %s\n", passwd);
+
+        if(change_passwd(a_lst, pass_for, passwd) == 0) printf("Password Changed successfully\n");
+        else printf("Error changing Password\n");
+        
     }
     else {
-        fprintf(temp, "%s:%s\n", pass_for, password);
+        if(change_passwd(a_lst, pass_for, password) == 0) printf("Error changing password\n");
+        else printf("Error changing Password\n");
         printf("New Password: %s\n", password);
-    }
-    fclose(temp);
-    
-
-    if(remove(CREDS_FILE) != 0) {
-        perror("Error changing password(1) ");
-        return;
-    }
-    if(rename(TEMPFILE, CREDS_FILE) != 0) {
-        perror("Error changing password(2) ");
-        return;
     }
 }
 
 void delete_account(char* account) {
-    if(account_exists(account) == 0) {
+    if(search_acc(a_lst, account) != 0) {
         printf("Account doesn't exist\n");
         return;
     }
 
-    FILE* temp =  fopen(TEMPFILE, "a+");
-
-
-    if(temp == NULL) {
-        perror("Error opening file: ");
-        return;
-    }
-
-    char buff[100];
-    char* acc = NULL;
-    char* pass = NULL;
-
-    while(fgets(buff, 100, creds_file) != NULL) {
-        acc = strtok(buff, ":");
-        pass = strtok(NULL, "\n");
-        if(strcmp(acc, account) == 0) {
-            continue;
-        }
-        fprintf(temp, "%s:%s\n", acc, pass);
-    }
-
-    fclose(temp);
-
-    if(remove(CREDS_FILE) != 0) {
-        perror("Error changing password(1): ");
-        return;
-    }
-    if(rename(TEMPFILE, CREDS_FILE) != 0) {
-        perror("Error changing password(2): ");
-        return;
-    }
+    if(delete_acc(a_lst, account) == 0 )
+        printf("Account Deleted\n");
+    else 
+        printf("Not Deleted\n");
     
-    printf("Account Deleted\n");
 }
 
 void create_pass(char* pass_for, char* pass) {
 
-    if(account_exists(pass_for)) {
+    if(search_acc(a_lst, pass_for) == 0) {
         printf("Password For %s already exists\n", pass_for);
         return;
     }
@@ -247,58 +228,46 @@ void create_pass(char* pass_for, char* pass) {
         char passwd[16];
         get_pass_string(passwd, 16);
         printf("New Password for %s: %s\n", pass_for, passwd);
-        fprintf(creds_file, "%s:%s\n", pass_for, passwd);
+        
+        if(insert_acc(a_lst, pass_for, passwd) == 0){
+            printf("Account added successfully\n");
+        } 
+        else {
+            printf("Error inserting account\n");
+        } 
+        
     }
     else {
         printf("New Password for %s: %s\n", pass_for, pass);
-        fprintf(creds_file, "%s:%s\n", pass_for, pass);
+         
+        if(insert_acc(a_lst, pass_for, pass) == 0){
+            printf("Account added successfully\n");
+        } 
+        else {
+            printf("Error inserting account\n");
+        } 
     }
+    
 }
 
 void get_pass(char* pass_for) {
-    char buff[100];
-    char* acc = NULL;
-    char* pass = NULL;
+    Acc_node n = NULL;
 
-    
-    while(fgets(buff, 100, creds_file) != NULL) {
-        acc = strtok(buff, ":");
-        pass = strtok(NULL, "\n");
-    
-        if(strcmp(pass_for, acc) == 0) {
-            printf("Password For %s: %s", pass_for, pass);
+    for(n = a_lst->head; n != NULL; n = n->next) {
+        if(strcmp(n->name, pass_for) == 0) {
+            printf("Password for %s: %s\n", pass_for, n->password);
             return;
         }
     }
     printf("Account doesn't exist\n");
 }
 
-int account_exists(char* account) {
-
-    char buff[200];
-    char* acc = NULL;
-
-    while(fgets(buff, 199, creds_file) != NULL) {
-        acc = strtok(buff, ":");
-        if(strcmp(account, acc) == 0) {
-            return 1;
-        }
-    }
-    
-    return 0;
-}
-
 void list_accounts() {
-    char buff[200];
-    char* acc = NULL;
-    char* pass = NULL;
+    Acc_node n = NULL;
 
-    while(fgets(buff, 199, creds_file) != NULL) {
-        acc = strtok(buff, ":");
-        pass = strtok(NULL, "\n");
-        
-        printf("Acc:  %s\n", acc);
-        printf("Pass: %s\n", pass);
+    for(n = a_lst->head; n != NULL; n = n->next) {
+        printf("Acc: %s\n", n->name);
+        printf("Pass: %s\n", n->password);
         printf("\n");
     }
     

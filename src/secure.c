@@ -1,7 +1,6 @@
-#include <stdio.h>
 #include <string.h>
 #include "../includes/secure.h"
-#include "../includes/main.h"
+
 
 
 int encrypt_key(char* pass) {
@@ -9,53 +8,29 @@ int encrypt_key(char* pass) {
     int sum = 0;
     
     for(int i = 0; i < string_length; i++) {
+        if (pass[i] == '\n') continue;
         sum += pass[i];
     }
-
     return sum;
 }
 
-void encrypt_file(int key, FILE* file) {
-    FILE* temp = fopen(TEMPFILE, "w");
 
-    if (temp == NULL){  
-        perror("Error opening file");
-        return;
-    } 
-
+void encrypt_line(int key, char* buff) {
     int offset = key % 128;
-    char buff[100];
-    int str_length;
-    while(fgets(buff, 99, file) != NULL) {
-        str_length = strlen(buff);
-        for(int i = 0; i < str_length; i++) {
-            buff[i] = buff[i] + offset;
-        }
-        fprintf(temp, "%s", buff);
-    }
+    int str_length = strlen(buff);
 
-    fclose(temp);
+    for(int i = 0; i < str_length; i++) {
+        if (buff[i] == '\n') continue;
+        buff[i] = buff[i] + offset;
+    }
 }
 
-void decrypt_file(int key, FILE* file) {
-    FILE* temp = fopen(TEMPFILE, "w");
-
-
-    if (temp == NULL){  
-        perror("Error opening file");
-        return;
-    } 
-
+void decrypt_line(int key, char* buff) {
     int offset = key % 128;
-    int str_length;
-    char buff[100];
+    int str_length = strlen(buff);
 
-    while(fgets(buff, 99, file)) {
-        str_length = strlen(buff);
-        for (int i = 0; i < str_length; i++) {
-            buff[i] = buff[i] - offset;
-        }
-        fprintf(temp, "%s", buff);
+    for (int i = 0; i < str_length; i++) {
+        if (buff[i] == '\n') continue;
+        buff[i] = buff[i] - offset;
     }
-    fclose(temp);
 }
