@@ -6,6 +6,8 @@
 #ifndef _WIN32
     #include <unistd.h>
     #include <termios.h>
+#else 
+    #include <windows.h>
 #endif
 
 #include "../includes/secure.h"
@@ -150,6 +152,34 @@ int initialize_accounts(char* pass) {
 
 int get_password(char* buff, int buff_len) {
 
+    #ifdef _WIN32
+        HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+        DWORD mode;
+
+        // Get current console mode
+        GetConsoleMode(hStdin, &mode);
+
+        // Disable echo input
+        DWORD newMode = mode & ~ENABLE_ECHO_INPUT;
+        SetConsoleMode(hStdin, newMode);
+    #else   
+        struct termios oldt, newt;
+
+        // Get current terminal settings
+         if (tcgetattr(STDIN_FILENO, &oldt) != 0) {
+            perror("tcgetattr");
+        }
+
+        // Make a copy and modify it: turn off echo
+        newt = oldt;
+        newt.c_lflag &= ~ECHO;
+
+        // Apply the new settings
+        if (tcsetattr(STDIN_FILENO, TCSANOW, &newt) != 0) {
+            perror("tcsetattr");
+        }
+    #endif
+
     int tries = 3;   
     do {
         printf("%s: \n", tries == 3 ? "Enter Master Password " : "Wrong Password Try Again ");
@@ -161,6 +191,13 @@ int get_password(char* buff, int buff_len) {
     }
     while(tries > 0);
 
+    #ifdef _WIN32
+        // Restore original console mode
+        SetConsoleMode(hStdin, mode);
+    #else
+         // Restore original terminal settings
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    #endif
     if(tries == 0) {
         printf("Too many tries");
         return -1;
