@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 #ifndef _WIN32
     #include <termios.h>
 #endif
@@ -12,20 +11,22 @@
 
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size);
-void create_pass(char* pass_for);
+void create_pass(char* pass_for, char* pass);
 void list_accounts();
-void split(char* tosplit, char* arr1, int arr1_size, char* arr2, int arr2_size, char delimiter);
 int account_exists(char* account);
 void get_pass(char* passwd_for);
-void change_pass(char* passwd_for);
+void change_pass(char* pass_for, char* pass);
 void get_pass_string(char* buff, int buff_size);
 void delete_account(char* account);
+void change_pass_from_user(char* pass_for);
+void add_pass_from_user(char* pass_for);
 
 
 #ifdef _WIN32
     #define CREDS_FILE "C:\\Documents\\creds.txt"
 #else
-    #define CREDS_FILE "/home/kapila/Windows_Files/Documents/creds.txt"
+   // #define CREDS_FILE "/home/kapila/Windows_Files/Documents/creds.txt"
+   #define CREDS_FILE "../creds.txt"
 #endif
 
 /*----------input flags----------*/
@@ -34,15 +35,22 @@ void delete_account(char* account);
 #define c_flag 0x04  //00000100
 #define l_flag 0x08  //00001000
 #define d_flag 0x10  //00010000
+#define i_flag 0x20  //00100000
+#define a_flag 0x40  //01000000
+#define o_flag 0x80  //10000000
+
+
+/*The File Pointer for the credit file*/
+FILE* creds_file = NULL;
 
 int main(int argc, char* argv[]) {
-    #ifndef _WIN32
-    /*Removing echo on terminal*/
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag = ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    /*#ifndef _WIN32
+    //Removing echo on terminal
+        struct termios oldt, newt;
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag = ~ECHO;
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     #endif
 
     char pass[20];
@@ -57,7 +65,6 @@ int main(int argc, char* argv[]) {
     do {
         printf("%s: \n", tries == 3 ? "Enter Master Password" : "Wrong Password Try Again");
         scanf("%19s", pass);
-        hash = get_key(pass);
         tries--;
         if(strcmp(env, hash) == 0) {
             break;
@@ -68,46 +75,35 @@ int main(int argc, char* argv[]) {
     if(tries == 0) {
         printf("Too many tries\n");
         #ifndef _WIN32 
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt); 
+            tcsetattr(STDIN_FILENO, TCSANOW, &oldt); 
         #endif
-        free(hash);
         return -1;
     }
     
     #ifndef _WIN32
-    /*Restoring echo on terminal*/
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    //Restoring echo on terminal
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     #endif
+    */
+
+    /*Opening credential file*/
+    creds_file = fopen(CREDS_FILE, "rw");
+    if (creds_file == NULL) {
+        perror("Error opening credential file ");
+        return -1;
+    }
     
-    unsigned char key[16] = {0};
-    unsigned char iv[16] = {0};
-
-    memcpy(key, hash, 16);
-    memcpy(iv, (hash+17), 16);
-
-    set_key(key);
-    set_iv(iv);
-    int stat;
-
     char input_buff[100];
     memset(input_buff, 0, 100);
     int flags = handle_input(argc, argv, input_buff, 99);
     if(flags == -1) {
-        free(hash);
         return -1;
     }
-
-    stat = decrypt_file(CREDS_FILE);
-
-    if (stat != 0) {
-        printf("Error decrypting\n");
-        free(hash);
-        return 0;
-    }
-    
-    
     else if(flags & n_flag) {
-        create_pass(input_buff);
+        create_pass(input_buff, NULL);
+    }
+    else if (flags & a_flag) {
+        add_pass_from_user(input_buff);
     }
     else if(flags & l_flag) {
         list_accounts();
@@ -116,24 +112,24 @@ int main(int argc, char* argv[]) {
         get_pass(input_buff);
     }
     else if (flags & c_flag) {
-        #ifdef _WIN32
-            printf("Cannot change password on Windows\n");
-            return 0;
-        #else
         char option[10];
         printf("Are you sure you want to change password for %s: ", input_buff);
         scanf("%s", option);
         if(strcmp(option, "yes") == 0)
-            change_pass(input_buff);
+            change_pass(input_buff, NULL);
         else 
             printf("Not changed\n");
-        #endif
+    }
+    else if (flags & o_flag) {
+        char option[10];
+        printf("Are you sure you want to change password for %s: ", input_buff);
+        scanf("%s", option);
+        if(strcmp(option, "yes") == 0)
+            change_pass_from_user(input_buff);
+        else 
+            printf("Not changed\n");
     }
     else if(flags & d_flag) {
-        #ifdef _WIN32
-            printf("Cannot delete account on Windows\n");
-            return 0;
-        #else
         char option[10] = {0};
         printf("Are you sure you want to delete this account: ");
         scanf("%s", option);
@@ -143,18 +139,26 @@ int main(int argc, char* argv[]) {
         else{
             printf("Not Deleted\n");
         }
-        #endif
     }
     
-    stat = encrypt_file(CREDS_FILE);
-    free(hash);
-    if(stat != 0) {
-        printf("Error encrypting\n");
-    }
     return 0;
 }
 
-void change_pass(char* pass_for) {
+void change_pass_from_user(char* pass_for) {
+    char pass[50];
+    printf("Enter the password for %s: ", pass_for);
+    scanf("%49s", pass);
+    change_pass(pass_for, pass);
+}
+
+void add_pass_from_user(char* pass_for) {
+    char pass[50];
+    printf("Enter the password for %s: ", pass_for);
+    scanf("%49s", pass);
+    create_pass(pass_for, pass);
+}
+
+void change_pass(char* pass_for, char* password) {
     if(account_exists(pass_for) == 0) {
         printf("Account doesn't exist\n");
         return;
@@ -171,41 +175,41 @@ void change_pass(char* pass_for) {
     }
 
     char buff[100];
-    char acc[50];
-    char pass[50];
+    char* acc = NULL;
+    char* pass = NULL;
 
     while(fgets(buff, 100, file) != NULL) {
-        split(buff, acc, 50, pass, 50, ':');
+        acc = strtok(buff, ":");
+        pass = strtok(NULL, "\n");
+
         if(strcmp(acc, pass_for) == 0) {
             continue;
         }
-        fprintf(temp, "%s:%s", acc, pass);
+        fprintf(temp, "%s:%s\n", acc, pass);
     }
 
-    
-    char passwd[16];
-
-    get_pass_string(passwd, 16);
-
-    fprintf(temp, "%s:%s\n", pass_for, passwd);
-    printf("New Password: %s\n", passwd);
+   
+    if(password == NULL) {
+        char passwd[16];
+        get_pass_string(passwd, 16);
+        fprintf(temp, "%s:%s\n", pass_for, passwd);
+        printf("New Password: %s\n", passwd);
+    }
+    else {
+        fprintf(temp, "%s:%s\n", pass_for, password);
+        printf("New Password: %s\n", password);
+    }
     fclose(temp);
     fclose(file);
 
-    #ifdef _WIN32
-        unlink(CREDS_FILE);
-        if(rename(TEMPFILE, CREDS_FILE) != 0) {
-            perror("Error changing file: ");
-            return;
-        }
-    #else
-        if(rename(TEMPFILE, CREDS_FILE) != 0) {
-            perror("Error changing file: ");
-            return;
-        }
-        unlink(TEMPFILE);
-    #endif
-    
+    if(remove(CREDS_FILE) != 0) {
+        perror("Error changing password(1) ");
+        return;
+    }
+    if(rename(TEMPFILE, CREDS_FILE) != 0) {
+        perror("Error changing password(2) ");
+        return;
+    }
 }
 
 void delete_account(char* account) {
@@ -224,38 +228,34 @@ void delete_account(char* account) {
     }
 
     char buff[100];
-    char acc[50];
-    char pass[50];
+    char* acc = NULL;
+    char* pass = NULL;
 
     while(fgets(buff, 100, file) != NULL) {
-        split(buff, acc, 50, pass, 50, ':');
+        acc = strtok(buff, ":");
+        pass = strtok(NULL, "\n");
         if(strcmp(acc, account) == 0) {
             continue;
         }
-        fprintf(temp, "%s:%s", acc, pass);
+        fprintf(temp, "%s:%s\n", acc, pass);
     }
 
     fclose(temp);
     fclose(file);
 
-    #ifdef _WIN32
-        if(rename(TEMPFILE, CREDS_FILE) != 0) {
-            perror("Error changing file: ");
-            return;
-        }
-        remove(CREDS_FILE);
-    #else
-    if(rename(TEMPFILE, CREDS_FILE) != 0) {
-        perror("Error changing file: ");
+    if(remove(CREDS_FILE) != 0) {
+        perror("Error changing password(1): ");
         return;
     }
-    unlink(TEMPFILE);
-    #endif
+    if(rename(TEMPFILE, CREDS_FILE) != 0) {
+        perror("Error changing password(2): ");
+        return;
+    }
     
     printf("Account Deleted\n");
 }
 
-void create_pass(char* pass_for) {
+void create_pass(char* pass_for, char* pass) {
     FILE* file = NULL;
     file = fopen(CREDS_FILE, "a+");
     if (file == NULL) {
@@ -267,18 +267,25 @@ void create_pass(char* pass_for) {
         printf("Password For %s already exists\n", pass_for);
         return;
     }
-    char passwd[16];
 
-    get_pass_string(passwd, 16);
-    printf("New Password for %s: %s\n", pass_for, passwd);
-    fprintf(file, "%s:%s\n", pass_for, passwd);
+    if(pass == NULL) {
+        char passwd[16];
+        get_pass_string(passwd, 16);
+        printf("New Password for %s: %s\n", pass_for, passwd);
+        fprintf(file, "%s:%s\n", pass_for, passwd);
+    }
+    else {
+        printf("New Password for %s: %s\n", pass_for, pass);
+        fprintf(file, "%s:%s\n", pass_for, pass);
+    }
+   
     fclose(file);
 }
 
 void get_pass(char* pass_for) {
     char buff[100];
-    char acc[50];
-    char pass[50];
+    char* acc = NULL;
+    char* pass = NULL;
 
     FILE* file = fopen(CREDS_FILE, "r");
     if (file == NULL) {
@@ -287,7 +294,9 @@ void get_pass(char* pass_for) {
     }
     
     while(fgets(buff, 100, file) != NULL) {
-        split(buff, acc, 50, pass, 50, ':');
+        acc = strtok(buff, ":");
+        pass = strtok(NULL, "\n");
+    
         if(strcmp(pass_for, acc) == 0) {
             printf("Password For %s: %s", pass_for, pass);
             return;
@@ -304,11 +313,10 @@ int account_exists(char* account) {
     }
 
     char buff[200];
-    char acc[50];
-    char pass[50];
+    char* acc = NULL;
 
     while(fgets(buff, 199, file) != NULL) {
-        split(buff, acc, 50, pass, 50, ':');
+        acc = strtok(buff, ":");
         if(strcmp(account, acc) == 0) {
             return 1;
         }
@@ -325,56 +333,32 @@ void list_accounts() {
         return;
     }
     char buff[200];
-    char acc[50];
-    char pass[50];
+    char* acc = NULL;
+    char* pass = NULL;
 
     while(fgets(buff, 199, file) != NULL) {
-        split(buff, acc, 50, pass, 50, ':');
+        acc = strtok(buff, ":");
+        pass = strtok(NULL, "\n");
+        
         printf("Acc:  %s\n", acc);
         printf("Pass: %s\n", pass);
+        printf("\n");
     }
+    
     fclose(file);
-}
-
-void split(char* tosplit, char* arr1, int arr1_size, char* arr2, int arr2_size, char delimiter) {
-    int string_len = strlen(tosplit);
-    memset(arr1, 0, arr1_size);
-    memset(arr2,0, arr2_size);
-    char* p = strchr(tosplit, delimiter);
-    if(p == NULL) {
-        return;
-    }
-
-    int delimiter_pos = p - tosplit;
-    int i;
-    for(i = 0; i < delimiter_pos; i++) {
-        if (i == arr1_size) break;
-        arr1[i] = tosplit[i];
-    } 
-    if (i == arr1_size) 
-        arr1[i-1] = '\0';
-    else 
-        arr1[i] = '\0';
-
-    i = 0;
-    for (int j = delimiter_pos+1; j<string_len; j++,i++) {
-        if(i == arr2_size) break;
-        arr2[i] = tosplit[j];
-    }
-    if(i == arr2_size)
-        arr2[i-1] = '\0';
-    else
-        arr2[i] = '\0';
 }
 
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
     
     char* help_message = "Usage: ./cman -n <account> to generate new password for given account\n"
+                         "OR:    ./cman -a <account> to add a password for a given account\n"
                          "OR:    ./cman -s <account> to search and get password for given account\n"
-                         "OR:    ./cman -c <account> to change password for given account\n"
+                         "OR:    ./cman -c <account> to change password for given account. Password generated from program\n"
+                         "OR:    ./cman -o <account> to change password for given account. Password given by user.\n"
                          "OR:    ./cman -l to list all accounts and passwords\n"
-                         "OR:    ./cman -h to display this message\n"
-                         "OR:    ./cman -d <account> to delete account given";
+                         "OR:    ./cman -d <account> to delete account given\n"
+                         "OR:    ./cman -i to enter interactive mode\n"
+                         "OR:    ./cman -h to display this message";
 
                             
     if (argc < 2 || argc > 3) {
@@ -393,18 +377,31 @@ int handle_input(int argc, char* argv[], char* input_buff, int buff_size) {
                 case 'c': flags = flags | c_flag; break;
                 case 'l': flags = flags | l_flag; break;
                 case 'd': flags = flags | d_flag; break;
+                case 'i': flags = flags | i_flag; break;
+                case 'a': flags = flags | a_flag; break;
+                case 'o': flags = flags | o_flag; break;
                 case 'h': printf("%s", help_message); return -1;
                 default: printf("Unknown option: %c\n%s", *(p+1), help_message); return -1;
             }
         }
     }
 
+    int input_flags[] = {n_flag, s_flag, c_flag, l_flag, d_flag, i_flag, a_flag, o_flag};
+    int num_flags = sizeof(input_flags) / sizeof(input_flags[0]);
+    int correct_inp = 0;
 
-    if (flags != c_flag && flags!= s_flag && flags != n_flag && flags != l_flag && flags != d_flag) {
+    for(int i = 0; i < num_flags; i++) {
+        if(flags == input_flags[i]) {
+            correct_inp = 1;
+            break;
+        }
+    }
+
+    if (correct_inp == 0) {
         printf("%s", help_message);
         return -1;
     }
-    else if(flags & l_flag) {
+    else if(flags & l_flag || flags & i_flag) {
         return flags;
     }
     else{
