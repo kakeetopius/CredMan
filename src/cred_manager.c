@@ -10,79 +10,29 @@
 #include <windows.h>
 #endif
 
-
 #include "../includes/account.h"
+#include "../includes/error_messages.h"
 #include "../includes/main.h"
 #include "../includes/secure.h"
-#include "../includes/error_messages.h"
 
 /*------Function pointer to use for dispatch table----*/
-typedef int (*handlers)(char**, int);
+typedef int (*handlers)(char **, int);
 
 /*----account list object-----*/
 Account_list a_lst = NULL;
 
 int main(int argc, char *argv[]) {
+
     char pass[30] = {0};
     int status = get_password(pass, sizeof(pass));
     if (status != 0)
         return -1;
 
-    char input_buff[100];
-    memset(input_buff, 0, 100);
-    int flags = handle_input(argc, argv, input_buff, 99);
-
-    status = initialize_accounts(pass);
-
-    if (status != 0)
+    status = handle_input(argc, argv, pass);
+    if (status == -1) {
         return -1;
-
-    if (flags == -1) {
-        return -1;
-    } else if (flags & n_flag) {
-        create_pass(input_buff, NULL);
-    } else if (flags & a_flag) {
-        add_pass_from_user(input_buff);
-    } else if (flags & l_flag) {
-        list_accounts();
-    } else if (flags & s_flag) {
-        get_pass(input_buff);
-    } else if (flags & c_flag) {
-        char option[10];
-        printf("Are you sure you want to change password for %s: ", input_buff);
-        scanf("%s", option);
-        if (strcmp(option, "yes") == 0)
-            change_pass(input_buff, NULL);
-        else
-            printf("Not changed\n");
-    } else if (flags & o_flag) {
-        char option[10];
-        printf("Are you sure you want to change password for %s: ", input_buff);
-        scanf("%s", option);
-        if (strcmp(option, "yes") == 0)
-            change_pass_from_user(input_buff);
-        else
-            printf("Not changed\n");
-    } else if (flags & d_flag) {
-        char option[10] = {0};
-        printf("Are you sure you want to delete this account: ");
-        scanf("%s", option);
-        if (strcmp(option, "yes") == 0) {
-            delete_account(input_buff);
-        } else {
-            printf("Not Deleted\n");
-        }
-    } else if (flags & u_flag) {
-        change_uname(input_buff);
     }
 
-    if ((flags & l_flag) || (flags & s_flag)) {
-        destroyAccList(a_lst);
-        return 0;
-    }
-
-    write_to_file(pass);
-    destroyAccList(a_lst);
     return 0;
 }
 
@@ -110,7 +60,7 @@ void write_to_file(char *pass) {
 
 int initialize_accounts(char *pass) {
     /*Opening credential file*/
-    FILE *cred_file = fopen(CREDS_FILE, "r");
+    FILE *cred_file = fopen(CREDS_FILE, "rb");
     if (cred_file == NULL) {
         perror("Error opening credential file ");
         return -1;
@@ -161,7 +111,11 @@ int initialize_accounts(char *pass) {
     return 0;
 }
 
+/*Function to get master password from user which is also essential for
+ * encryption*/
 int get_password(char *buff, int buff_len) {
+
+    /*---TODO: Get password from hash environment variable--*/
 
 #ifdef _WIN32
     HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
@@ -221,116 +175,163 @@ int get_password(char *buff, int buff_len) {
     return 0;
 }
 
-void change_pass_from_user(char *pass_for) {
-    char pass[50];
-    printf("Enter the password for %s: ", pass_for);
-    scanf("%49s", pass);
-    change_pass(pass_for, pass);
-}
-
-void add_pass_from_user(char *pass_for) {
-    char pass[50];
-    printf("Enter the password for %s: ", pass_for);
-    scanf("%49s", pass);
-    create_pass(pass_for, pass);
-}
-
-void change_uname(char *account) {
-    if (search_acc(a_lst, account) != 0) {
-        printf("Account doesn't exist\n");
-        return;
+/*--- Dispatch function to handle adding new accounts-----*/
+int add_acc(char **argv, int argc) {
+    if (argc == 3) {
+        if (strcmp(argv[2], "help")) {
+            printf("%s", ADD_MESSAGE);
+            return 0;
+        } else {
+            printf("%s", ADD_MESSAGE);
+            return -1;
+        }
     }
 
-    char uname[50];
-    printf("Enter the new username: ");
-    scanf("%49s", uname);
-    change_user_name(a_lst, account, uname);
-}
-
-void change_pass(char *pass_for, char *password) {
-    if (search_acc(a_lst, pass_for) != 0) {
-        printf("Account doesn't exist\n");
-        return;
+    if (argc != 4) {
+        printf("%s", ADD_MESSAGE);
+        return -1;
     }
 
-    if (password == NULL) {
-        char passwd[16];
-        get_pass_string(passwd, 16);
-        printf("New Password: %s\n", passwd);
+    char *account = argv[2];
 
-        if (change_passwd(a_lst, pass_for, passwd) == 0)
-            printf("Password Changed successfully\n");
-        else
-            printf("Error changing Password\n");
+    if (search_acc(a_lst, account) == 0) {
+        printf("Password For %s already exists\n", account);
+        return -1;
+    }
 
+    char user_name[50];
+    char pass[50];
+    printf("Enter the User Name: ");
+    scanf("%49s", user_name);
+
+    if (strcmp("no-auto", argv[3]) == 0) {
+        printf("Enter Password: ");
+        scanf("%49s", pass);
+    } else if (strcmp("auto", argv[3]) == 0) {
+        get_pass_string(pass, 16);
     } else {
-        if (change_passwd(a_lst, pass_for, password) == 0)
-            printf("Error changing password\n");
-        else
-            printf("Error changing Password\n");
-        printf("New Password: %s\n", password);
+        printf("Unknown option: %s\n", argv[3]);
     }
+
+    printf("New Password for %s: %s\n", account, pass);
+    if (insert_acc(a_lst, account, pass, user_name) == 0) {
+        printf("Account added successfully\n");
+    } else {
+        printf("Error inserting account\n");
+    }
+    return 0;
 }
 
-void delete_account(char *account) {
+/*--- Dispatch function to handle changing account details-----*/
+int change_details(char **argv, int argc) {
+    if (argc == 3) {
+        if (strcmp(argv[2], "help")) {
+            printf("%s", CHANGE_MESSAGE);
+            return 0;
+        } else {
+            printf("Unknown option: %s", argv[2]);
+            return -1;
+        }
+    }
+
+    if (argc != 4) {
+        printf("%s", CHANGE_MESSAGE);
+        return -1;
+    }
+
+    char *account = argv[2];
+    char *option = argv[3];
+    char value[50];
+
     if (search_acc(a_lst, account) != 0) {
         printf("Account doesn't exist\n");
-        return;
+        return -1;
+    }
+
+    if (strcmp(option, "user") == 0) {
+        printf("Enter New User Name: ");
+        scanf("%49s", value);
+        change_user_name(a_lst, account, value);
+    }
+    if (strcmp(option, "name") == 0) {
+        printf("Enter New Account Name: ");
+        scanf("%49s", value);
+        change_acc_name(a_lst, account, value);
+    }
+    if (strcmp(option, "pass") == 0) {
+        if (argc != 5) {
+            printf("%s", CHANGE_MESSAGE);
+            return -1;
+        }
+        char pass[50];
+        if (strcmp(argv[4], "auto") == 0) {
+            get_pass_string(pass, 16);
+        } else if (strcmp(argv[4], "no-auto") == 0) {
+            printf("Enter New Password: ");
+            scanf("%49s", value);
+        }
+        change_passwd(a_lst, account, pass);
+    }
+
+    return 0;
+}
+
+/*--- Dispatch function to handle deleting of accounts-----*/
+int delete_account(char **argv, int argc) {
+    if (argc != 3) {
+        printf("%s", DELETE_MESSAGE);
+        return -1;
+    }
+
+    if (strcmp("help", argv[2]) == 0) {
+        printf("%s", DELETE_MESSAGE);
+        return -1;
+    }
+
+    char *account = argv[2];
+    if (search_acc(a_lst, account) != 0) {
+        printf("Account %s doesn't exist\n", account);
+        return -1;
     }
 
     if (delete_acc(a_lst, account) == 0)
         printf("Account Deleted\n");
     else
         printf("Not Deleted\n");
+
+    return 0;
 }
 
-void create_pass(char *pass_for, char *pass) {
-
-    if (search_acc(a_lst, pass_for) == 0) {
-        printf("Password For %s already exists\n", pass_for);
-        return;
+/*--- Dispatch function to handle searching of account details-----*/
+int get_details(char **argv, int argc) {
+    if (argc != 3) {
+        printf("%s", SEARCH_MESSAGE);
+        return -1;
     }
 
-    char uname[50] = {0};
-    printf("Enter username for account: ");
-    scanf("%49s", uname);
-
-    if (pass == NULL) {
-        char passwd[16];
-        get_pass_string(passwd, 16);
-        printf("New Password for %s: %s\n", pass_for, passwd);
-
-        if (insert_acc(a_lst, pass_for, passwd, uname) == 0) {
-            printf("Account added successfully\n");
-        } else {
-            printf("Error inserting account\n");
-        }
-
-    } else {
-        printf("New Password for %s: %s\n", pass_for, pass);
-        if (insert_acc(a_lst, pass_for, pass, uname) == 0) {
-            printf("Account added successfully\n");
-        } else {
-            printf("Error inserting account\n");
-        }
+    if (strcmp("help", argv[2]) == 0) {
+        printf("%s", SEARCH_MESSAGE);
+        return -1;
     }
-}
 
-void get_pass(char *pass_for) {
+    char *account = argv[2];
+
     Acc_node n = NULL;
 
     for (n = a_lst->head; n != NULL; n = n->next) {
-        if (strcmp(n->name, pass_for) == 0) {
-            printf("Account:   %s\n", pass_for);
+        if (strcmp(n->name, account) == 0) {
+            printf("Account:   %s\n", account);
             printf("User Name: %s\n", n->username);
             printf("Password:  %s\n", n->password);
-            return;
+            return 0;
         }
     }
-    printf("Account doesn't exist\n");
+    printf("Account %s doesn't exist\n", account);
+    return -1;
 }
 
-void list_accounts() {
+/*--- Dispatch function to list the details of all accounts-----*/
+int list_accounts(char** argv, int argc) {
     Acc_node n = NULL;
 
     for (n = a_lst->head; n != NULL; n = n->next) {
@@ -339,14 +340,26 @@ void list_accounts() {
         printf("Pass:       %s\n", n->password);
         printf("\n");
     }
+    return 0;
 }
 
-int handle_input(int argc, char *argv[], char *input_buff, int buff_size) {
-    if (strcmp(argv[1], "-h") == 0) {
-
-	printf("%s", GENERAL_MESSAGE);
+int handle_input(int argc, char *argv[], char *pass) {
+    if (argc < 2) {
+        printf("%s", GENERAL_MESSAGE);
+        return -1;
+    } else if (strcmp(argv[1], "help") == 0) {
+        printf("%s", GENERAL_MESSAGE);
+        return 0;
     }
-    return -1;
+
+    int status = initialize_accounts(pass);
+
+    if (status != 0)
+        return -1;
+
+    write_to_file(pass);
+    destroyAccList(a_lst);
+    return 0;
 }
 
 void get_pass_string(char *buff, int buff_size) {
