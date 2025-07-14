@@ -10,12 +10,16 @@
 #include <windows.h>
 #endif
 
+
 #include "../includes/account.h"
 #include "../includes/main.h"
 #include "../includes/secure.h"
+#include "../includes/error_messages.h"
+
+/*------Function pointer to use for dispatch table----*/
+typedef int (*handlers)(char**, int);
 
 /*----account list object-----*/
-
 Account_list a_lst = NULL;
 
 int main(int argc, char *argv[]) {
@@ -338,106 +342,11 @@ void list_accounts() {
 }
 
 int handle_input(int argc, char *argv[], char *input_buff, int buff_size) {
+    if (strcmp(argv[1], "-h") == 0) {
 
-    char *help_message =
-        "Usage: ./cman -n <account> to generate new password for given "
-        "account\n"
-        "OR:    ./cman -a <account> to add a password for a given account\n"
-        "OR:    ./cman -s <account> to search and get password for given "
-        "account\n"
-        "OR:    ./cman -c <account> to change password for given account. "
-        "Password generated from program\n"
-        "OR:    ./cman -o <account> to change password for given account. "
-        "Password given by user.\n"
-        "OR:    ./cman -l to list all accounts and passwords\n"
-        "OR:    ./cman -u <account> to change username for given account\n"
-        "OR:    ./cman -d <account> to delete account given\n"
-        "OR:    ./cman -i to enter interactive mode\n"
-        "OR:    ./cman -h to display this message";
-
-    if (argc < 2 || argc > 3) {
-        printf("%s", help_message);
-        return -1;
+	printf("%s", GENERAL_MESSAGE);
     }
-
-    int flags = 0;
-
-    for (int i = 0; i < argc; i++) {
-        char *p = NULL;
-        if (argv[i][0] == '-')
-            p = argv[i];
-        if (p != NULL) {
-            switch (*(p + 1)) {
-            case 'n':
-                flags = flags | n_flag;
-                break;
-            case 's':
-                flags = flags | s_flag;
-                break;
-            case 'c':
-                flags = flags | c_flag;
-                break;
-            case 'l':
-                flags = flags | l_flag;
-                break;
-            case 'd':
-                flags = flags | d_flag;
-                break;
-            case 'i':
-                flags = flags | i_flag;
-                break;
-            case 'a':
-                flags = flags | a_flag;
-                break;
-            case 'o':
-                flags = flags | o_flag;
-                break;
-            case 'u':
-                flags = flags | u_flag;
-                break;
-            case 'h':
-                printf("%s", help_message);
-                return -1;
-            default:
-                printf("Unknown option: %c\n%s", *(p + 1), help_message);
-                return -1;
-            }
-        }
-    }
-
-    int input_flags[] = {n_flag, s_flag, c_flag, l_flag, d_flag,
-                         i_flag, a_flag, o_flag, u_flag};
-    int num_flags = sizeof(input_flags) / sizeof(input_flags[0]);
-    int correct_inp = 0;
-
-    for (int i = 0; i < num_flags; i++) {
-        if (flags == input_flags[i]) {
-            correct_inp = 1;
-            break;
-        }
-    }
-
-    if (correct_inp == 0) {
-        printf("%s", help_message);
-        return -1;
-    } else if (flags & l_flag || flags & i_flag) {
-        return flags;
-    } else {
-        if (argc != 3) {
-            printf("%s", help_message);
-            return -1;
-        }
-        int input_len = strlen(argv[2]);
-
-        if (input_len > buff_size) {
-            printf("The input string is too long\n");
-            return -1;
-        }
-
-        snprintf(input_buff, buff_size, "%s", argv[2]);
-    }
-
-    return flags;
+    return -1;
 }
 
 void get_pass_string(char *buff, int buff_size) {
