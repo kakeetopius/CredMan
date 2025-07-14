@@ -9,6 +9,7 @@ int encrypt_key(char* pass) {
     
     for(int i = 0; i < string_length; i++) {
         if (pass[i] == '\n') continue;
+        else if (pass[i] == '\r') continue;
         sum += pass[i];
     }
     return sum;
@@ -21,6 +22,7 @@ void encrypt_line(int key, char* buff) {
 
     for(int i = 0; i < str_length; i++) {
         if (buff[i] == '\n') continue;
+        else if (buff[i] == '\r') continue;
         buff[i] = buff[i] + offset;
     }
 }
@@ -31,6 +33,7 @@ void decrypt_line(int key, char* buff) {
 
     for (int i = 0; i < str_length; i++) {
         if (buff[i] == '\n') continue;
+        else if (buff[i] == '\r') continue;
         buff[i] = buff[i] - offset;
     }
 }

@@ -21,7 +21,7 @@
 #define i_flag 0x20  //00100000
 #define a_flag 0x40  //01000000
 #define o_flag 0x80  //10000000
-
+#define u_flag 0x100 //100000000
 
 /*----------------Function declarations----------*/
 int handle_input(int argc, char* argv[], char* input_buff, int buff_size);
@@ -37,5 +37,6 @@ void add_pass_from_user(char* pass_for);
 int get_password(char* buff, int buff_len);
 int initialize_accounts(char* pass);
 void write_to_file(char* pass);
+void change_uname(char* account);
 
 #endif

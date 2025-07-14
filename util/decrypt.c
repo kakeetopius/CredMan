@@ -10,7 +10,12 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    FILE* file = fopen(argv[1], "rw");
+    FILE* file = fopen(argv[1], "r");
+
+    if (file == NULL) {
+        perror("Error opening file ");
+        return -1;
+    }
 
     char pass[30];
     printf("Enter key: ");
@@ -40,6 +45,7 @@ void decrypt_file(int key, FILE* file) {
         str_length = strlen(buff);
         for (int i = 0; i < str_length; i++) {
             if(buff[i] == '\n') continue;
+            if(buff[i] == '\r') continue;
             buff[i] = buff[i] - offset;
         }
         fprintf(temp, "%s", buff);

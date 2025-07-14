@@ -4,6 +4,7 @@
 
 #include "../includes/account.h"
 
+
 Account_list createAccList() {
     Account_list lst = (Account_list) malloc(sizeof(struct account_list));
     if (lst == NULL) {
@@ -15,7 +16,7 @@ Account_list createAccList() {
     return lst;
 }
 
-int insert_acc(Account_list lst, char* name, char* pass) {
+int insert_acc(Account_list lst, char* name, char* pass, char* uname) {
     if (lst == NULL) {
         printf("Uninitialized account list\n");
         return -1;
@@ -29,6 +30,7 @@ int insert_acc(Account_list lst, char* name, char* pass) {
 
     n->name = strdup(name);
     n->password = strdup(pass);
+    n->username = strdup(uname);
     n->prev = NULL;
     n->next = NULL;
 
@@ -68,6 +70,7 @@ int delete_acc(Account_list lst, char* name) {
             }
             free(iter->name);
             free(iter->password);
+            free(iter->username);
             free(iter);
             return 0;
         }
@@ -131,6 +134,24 @@ int change_acc_name(Account_list lst, char* old_name, char* new_name) {
     return -1;
 }
 
+int change_user_name(Account_list lst, char* acc_name, char* new_name) {
+    if (lst == NULL) {
+        printf("Unintialized account list\n");
+        return -1;
+    }
+
+    Acc_node iter = NULL;
+
+    for (iter = lst->head; iter != NULL; iter = iter->next) {
+        if (strcmp(acc_name, iter->name) == 0) {
+            free(iter->username);
+            iter->username = strdup(new_name);
+            return 0;
+        }
+    }
+
+    return -1;
+}
 void destroyAccList(Account_list lst) {
     if (lst == NULL) {
         return;
@@ -146,7 +167,7 @@ void destroyAccList(Account_list lst) {
     while(n != NULL) {
         free(n->name);
         free(n->password);
-        
+        free(n->username); 
         tmp = n->next;
         free(n);
         n = tmp;
