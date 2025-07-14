@@ -7,7 +7,7 @@
     #define CREDS_FILE "C:\\Documents\\creds.txt"
     #define BACKUP "C:\\Log\\wcred.txxt"
 #else
-    #define CREDS_FILE "/home/kapila/Documents/Win_Docs/creds.txt"
+    #define CREDS_FILE "/media/pius/Windows/Documents/creds.txt"
     #define BACKUP "/home/kapila/.creds.txt"
 #endif
 

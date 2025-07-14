@@ -31,7 +31,6 @@ int main(int argc, char* argv[]) {
 void decrypt_file(int key, FILE* file) {
     FILE* temp = fopen("dout.txt", "w");
 
-
     if (temp == NULL){  
         perror("Error opening file");
         return;
@@ -45,7 +44,6 @@ void decrypt_file(int key, FILE* file) {
         str_length = strlen(buff);
         for (int i = 0; i < str_length; i++) {
             if(buff[i] == '\n') continue;
-            if(buff[i] == '\r') continue;
             buff[i] = buff[i] - offset;
         }
         fprintf(temp, "%s", buff);

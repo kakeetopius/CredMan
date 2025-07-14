@@ -95,7 +95,7 @@ void write_to_file(char *pass) {
   char buff[100];
   Acc_node n = NULL;
   for (n = a_lst->head; n != NULL; n = n->next) {
-    snprintf(buff, 99, "%s:%s:%s\r\n", n->name, n->password, n->username);
+    snprintf(buff, 99, "%s:%s:%s", n->name, n->password, n->username);
     encrypt_line(key, buff);
     fprintf(cred_file, "%s", buff);
   }
@@ -124,29 +124,32 @@ int initialize_accounts(char *pass) {
     return -1;
   }
 
-  int index;
   char buff[100];
-  while (fgets(buff, 99, cred_file) != NULL) {
-    index = strcspn(buff, "\n");
-    buff[index] = '\0';
+
+  while (fgets(buff, 100, cred_file) != NULL) {
     decrypt_line(key, buff);
-    name = strtok(buff, ":");
+
+    char *saveptr;
+    name = strtok_r(buff, ":", &saveptr);
+
     if (name == NULL) {
       printf("Error parsing credential file(1)\n");
       return -1;
     }
-    passwd = strtok(NULL, ":");
+    passwd = strtok_r(NULL, ":", &saveptr);
     if (passwd == NULL) {
       printf("Error parsing credential file(2)\n");
       return -1;
     }
-    uname = strtok(NULL, ":");
+
+    uname = strtok_r(NULL, "\n", &saveptr);
     if (uname == NULL) {
       printf("Error parsing credential file(3)\n");
       return -1;
     }
 
     insert_acc(a_lst, name, passwd, uname);
+    memset(buff, 0, 100);
   }
 
   fclose(cred_file);
@@ -480,4 +483,3 @@ void get_pass_string(char *buff, int buff_size) {
   }
   buff[buff_size - 1] = '\0';
 }
-
