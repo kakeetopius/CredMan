@@ -28,6 +28,8 @@
 
 #define DELETE_MESSAGE "Usage:\n cman delete <account>\t\tDelete the details for given account"
 
+#define LS_MESSAGE "Usage:\n cman ls \t\tList details of all accounts\n"
+
 
 #endif
 

@@ -15,9 +15,6 @@
 #include "../includes/main.h"
 #include "../includes/secure.h"
 
-/*------Function pointer to use for dispatch table----*/
-typedef int (*handlers)(char **, int);
-
 /*----account list object-----*/
 Account_list a_lst = NULL;
 
@@ -29,7 +26,7 @@ int main(int argc, char *argv[]) {
         return -1;
 
     status = handle_input(argc, argv, pass);
-    if (status == -1) {
+    if (status != -1) {
         return -1;
     }
 
@@ -225,12 +222,9 @@ int add_acc(char **argv, int argc) {
 /*--- Dispatch function to handle changing account details-----*/
 int change_details(char **argv, int argc) {
     if (argc == 3) {
-        if (strcmp(argv[2], "help")) {
+        if (strcmp(argv[2], "help") == 0) {
             printf("%s", CHANGE_MESSAGE);
             return 0;
-        } else {
-            printf("Unknown option: %s", argv[2]);
-            return -1;
         }
     }
 
@@ -244,7 +238,7 @@ int change_details(char **argv, int argc) {
     char value[50];
 
     if (search_acc(a_lst, account) != 0) {
-        printf("Account doesn't exist\n");
+        printf("Account %s doesn't exist\n", account);
         return -1;
     }
 
@@ -252,13 +246,11 @@ int change_details(char **argv, int argc) {
         printf("Enter New User Name: ");
         scanf("%49s", value);
         change_user_name(a_lst, account, value);
-    }
-    if (strcmp(option, "name") == 0) {
+    } else if (strcmp(option, "name") == 0) {
         printf("Enter New Account Name: ");
         scanf("%49s", value);
         change_acc_name(a_lst, account, value);
-    }
-    if (strcmp(option, "pass") == 0) {
+    } else if (strcmp(option, "pass") == 0) {
         if (argc != 5) {
             printf("%s", CHANGE_MESSAGE);
             return -1;
@@ -271,6 +263,10 @@ int change_details(char **argv, int argc) {
             scanf("%49s", value);
         }
         change_passwd(a_lst, account, pass);
+    } else {
+        printf("Unknown option: %s\n", option);
+        printf("%s", CHANGE_MESSAGE);
+        return -1;
     }
 
     return 0;
@@ -331,7 +327,11 @@ int get_details(char **argv, int argc) {
 }
 
 /*--- Dispatch function to list the details of all accounts-----*/
-int list_accounts(char** argv, int argc) {
+int list_accounts(char **argv, int argc) {
+    if (argc != 2) {
+        printf("%s", LS_MESSAGE);
+        return -1;
+    }
     Acc_node n = NULL;
 
     for (n = a_lst->head; n != NULL; n = n->next) {
@@ -344,7 +344,7 @@ int list_accounts(char** argv, int argc) {
 }
 
 int handle_input(int argc, char *argv[], char *pass) {
-    if (argc < 2) {
+    if (argc < 2 || argc > 5) {
         printf("%s", GENERAL_MESSAGE);
         return -1;
     } else if (strcmp(argv[1], "help") == 0) {
@@ -357,9 +357,33 @@ int handle_input(int argc, char *argv[], char *pass) {
     if (status != 0)
         return -1;
 
-    write_to_file(pass);
+    char *command = argv[1];
+
+    /*------------Dispatch table for subcommands------------*/
+    struct sub_command dispatch[] = {
+        {"ls", list_accounts},      {"add", add_acc},
+        {"search", get_details},    {"change", change_details},
+        {"delete", delete_account}, {NULL, NULL}};
+
+    int dispatch_size = sizeof(dispatch) / sizeof(dispatch[0]);
+
+    for (int i = 0; i < dispatch_size; i++) {
+        if (dispatch[i].name == NULL) {
+            printf("Unknown Command: %s\n", command);
+            printf("%s", GENERAL_MESSAGE);
+            destroyAccList(a_lst);
+            return -1;
+        } else if (strcmp(command, dispatch[i].name) == 0) {
+            status = dispatch[i].command_handler(argv, argc);
+            break;
+        }
+    }
+
+    if (strcmp(command, "ls") != 0)
+        write_to_file(pass);
+
     destroyAccList(a_lst);
-    return 0;
+    return status;
 }
 
 void get_pass_string(char *buff, int buff_size) {

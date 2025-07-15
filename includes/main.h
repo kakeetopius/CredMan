@@ -7,11 +7,27 @@
     #define CREDS_FILE "C:\\Documents\\creds.txt"
     #define BACKUP "C:\\Log\\wcred.txxt"
 #else
-    #define CREDS_FILE "/media/pius/Windows/Documents/creds.txt"
+    #define CREDS_FILE "util/creds.txt"
+    // #define CREDS_FILE "/media/pius/Windows/Documents/creds.txt"
     #define BACKUP "/home/kapila/.creds.txt"
 #endif
 
+/*------Function pointer to use for dispatch table----*/
+typedef int (*Handler)(char **, int);
 
+/*-------------Sub Command Structure--------------------*/
+struct sub_command {
+    const char* name;
+    Handler command_handler; 
+};
+
+
+/*----------------Credential Structure to be stored----------*/
+struct credential {
+    char acc_name[32];
+    char user_name[32];
+    char pass[32];
+};
 
 /*----------------Function declarations----------*/
 int handle_input(int argc, char* argv[], char* pass);
