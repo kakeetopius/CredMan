@@ -13,7 +13,7 @@
 #include "../includes/account.h"
 #include "../includes/error_messages.h"
 #include "../includes/main.h"
-#include "../includes/secure.h"
+// #include "../includes/secure.h"
 
 /*----account list object-----*/
 Account_list a_lst = NULL;
@@ -40,16 +40,17 @@ void write_to_file(char *pass) {
         perror("Error opening credential file ");
         return;
     }
+    
+    int cred_size = sizeof(struct credential);
+    struct credential* cred = (struct credential*)malloc(cred_size);
 
-    /*Getting key*/
-    int key = encrypt_key(pass);
-
-    char buff[100];
     Acc_node n = NULL;
     for (n = a_lst->head; n != NULL; n = n->next) {
-        snprintf(buff, 99, "%s:%s:%s", n->name, n->password, n->username);
-        encrypt_line(key, buff);
-        fprintf(cred_file, "%s", buff);
+	memset(cred, '\0', cred_size);	
+	strncpy(cred->acc_name, n->name, 63);
+	strncpy(cred->user_name, n->username, 63);
+	strncpy(cred->pass, n->password, 63);
+	fwrite(cred, cred_size, 1, cred_file);
     }
 
     fclose(cred_file);
@@ -63,12 +64,6 @@ int initialize_accounts(char *pass) {
         return -1;
     }
 
-    /*Getting key*/
-    int key = encrypt_key(pass);
-    char *name;
-    char *passwd;
-    char *uname;
-
     /*--Account list---*/
     a_lst = createAccList();
     if (a_lst == NULL) {
@@ -76,32 +71,11 @@ int initialize_accounts(char *pass) {
         return -1;
     }
 
-    char buff[100];
+    int cred_size = sizeof(struct credential);
+    struct credential* cred = (struct credential*)malloc(cred_size);
 
-    while (fgets(buff, 100, cred_file) != NULL) {
-        decrypt_line(key, buff);
-
-        char *saveptr;
-        name = strtok_r(buff, ":", &saveptr);
-
-        if (name == NULL) {
-            printf("Error parsing credential file(1)\n");
-            return -1;
-        }
-        passwd = strtok_r(NULL, ":", &saveptr);
-        if (passwd == NULL) {
-            printf("Error parsing credential file(2)\n");
-            return -1;
-        }
-
-        uname = strtok_r(NULL, "\n", &saveptr);
-        if (uname == NULL) {
-            printf("Error parsing credential file(3)\n");
-            return -1;
-        }
-
-        insert_acc(a_lst, name, passwd, uname);
-        memset(buff, 0, 100);
+    while (fread(cred, cred_size, 1, cred_file) == cred_size) {
+        insert_acc(a_lst, cred->acc_name, cred->pass, cred->user_name);
     }
 
     fclose(cred_file);
@@ -153,7 +127,7 @@ int get_password(char *buff, int buff_len) {
         buff[strcspn(buff, "\n")] = '\0'; // Strip newline
 #endif
         tries--;
-        if (strcmp(buff, "Kapila.707403") == 0) {
+        if (strcmp(buff, "kapila") == 0) {
             break;
         }
     } while (tries > 0);
