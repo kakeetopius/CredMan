@@ -335,14 +335,18 @@ int handle_input(int argc, char *argv[], char *pass) {
 
     /*------------Dispatch table for subcommands------------*/
     struct sub_command dispatch[] = {
-        {"ls", list_accounts},      {"add", add_acc},
-        {"search", get_details},    {"change", change_details},
-        {"delete", delete_account}, {NULL, NULL}};
+        {"ls", list_accounts},      
+	{"add", add_acc},
+        {"search", get_details},   
+	{"change", change_details},
+        {"delete", delete_account}, 
+	{NULL, NULL}
+    };
 
     int dispatch_size = sizeof(dispatch) / sizeof(dispatch[0]);
 
     for (int i = 0; i < dispatch_size; i++) {
-        if (dispatch[i].name == NULL) {
+        if (dispatch[i].name == NULL) {	       /*If the end of the dispatch array is reached and no matches*/
             printf("Unknown Command: %s\n", command);
             printf("%s", GENERAL_MESSAGE);
             destroyAccList(a_lst);
