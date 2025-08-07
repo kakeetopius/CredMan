@@ -12,7 +12,7 @@
 
 #include "../includes/account.h"
 #include "../includes/error_messages.h"
-#include "../includes/main.h"
+#include "../includes/client_main.h"
 // #include "../includes/secure.h"
 
 /*----account list object-----*/
