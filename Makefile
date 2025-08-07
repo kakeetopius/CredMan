@@ -1,21 +1,64 @@
-CC = gcc
-CFLAGS =  -Wall -g -Iincludes
-LIBS = 
-
-SRCS = src/cred_manager.c src/secure.c src/account.c
-OBJS = $(SRCS:src/%.c=obj/%.o)
-INCLUDES = includes/account.h includes/main.h includes/secure.h
+#--------------Directories---------------------------
 OBJDIR = obj
+BINDIR = bin
+INCLUDEDIR = includes
 
-OUT = cman
+#--------------Compiler options----------------------
+CC = gcc
+CFLAGS =  -Wall -g -I$(INCLUDEDIR) -MMD -MP
+CLIENT_LIBS = 
+SERVER_LIBS =
 
-all: $(OUT)
+#----------------Source Files----------------------------
+CLIENT_SRCS = src/main.c src/secure.c src/account.c
+SERVER_SRCS = src/database.c src/server.c 
 
-$(OUT): $(OBJS) $(INCLUDES)
-	$(CC) $(OBJS) -o $(OUT) $(LIBS)
 
-obj/%.o : src/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+#----------------Object Files-----------------------------
+CLIIENT_OBJS = $(CLIENT_SRCS:src/%.c=$(OBJDIR)/%.o)
+SERVER_OBJS  = $(SERVER_SRCS:src/%.c=$(OBJDIR)/%.o) 
 
+
+#------------------Final Binaries--------------------------
+CLIENT_BIN = cman
+SERVER_BIN = cmand
+
+
+#----------------Dependencies------------------------------
+CLIENT_DEP = $(CLIIENT_OBJS:%.o=%.d)
+SERVER_DEP = $(SERVER_OBJS:%.o=%.d)
+
+
+#----------------------Make targets-------------------------
+all: $(CLIENT_BIN) $(SERVER_BIN)
+
+
+$(CLIENT_BIN): $(CLIIENT_OBJS) | $(BINDIR)
+	@echo "Compiling client..........."
+	$(CC) $(CLIIENT_OBJS) -o $(BINDIR)/$(CLIENT_BIN) $(CLIENT_LIBS)
+
+$(SERVER_BIN): $(SERVER_OBJS) | $(BINDIR)
+	@echo "Compiling server............"
+	$(CC) $(SERVER_OBJS) -o $(BINDIR)/$(SERVER_BIN) $(SERVER_LIBS)
+
+$(OBJDIR)/%.o: src/%.c | $(OBJDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ 
+
+clean:
+	@echo "Removing binaries.............."
+	@rm -rf $(OBJDIR) $(BINDIR)
+
+
+#--------------Directories------------------
 $(OBJDIR):
 	@mkdir $(OBJDIR)
+
+$(BINDIR):
+	@mkdir $(BINDIR)
+
+
+#----------------Directives------------------
+#---they help to give extra dependencie(header files) for the binary objects
+-include $(SERVER_DEP)
+-include $(CLIENT_DEP)
+
