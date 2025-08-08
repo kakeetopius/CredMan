@@ -37,7 +37,7 @@ int main(void) {
     free_dbinfo(db);
 }
 
-void get_results() {
+void query_and_get_results(char* query) {
     /*-------------Statement Handler--------------------*/
 
     MYSQL_STMT* stmt = mysql_stmt_init(mysql);
@@ -295,4 +295,5 @@ void free_dbinfo(DB_INFO *db_info) {
 
     free(db_info);
 } 
+
 

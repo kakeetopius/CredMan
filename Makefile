@@ -11,7 +11,7 @@ SERVER_LIBS = -lmariadb
 
 #----------------Source Files----------------------------
 CLIENT_SRCS = src/client_main.c src/secure.c src/account.c
-SERVER_SRCS = src/database.c src/server_main.c 
+SERVER_SRCS = src/database.c src/server_main.c src/db_structures.c
 
 
 #----------------Object Files-----------------------------

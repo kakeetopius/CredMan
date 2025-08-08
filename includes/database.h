@@ -10,8 +10,13 @@ typedef struct db_info {
     int port;
 } DB_INFO;
 
+
+
+
 #define SERVER_CONFIG_FILE  "/home/pius/Dev/Projects/Cred_Manager/config/server.conf"
+
 #define DB_CONFIG_FILE      "/home/pius/Dev/Projects/Cred_Manager/config/db.conf"
+
 
 
 DB_INFO* get_dbinfo();
