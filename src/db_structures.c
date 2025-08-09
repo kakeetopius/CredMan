@@ -4,7 +4,7 @@
 
 #include "../includes/db_structures.h"
 
-DB_BIND_SET* create_bind_set() {
+DB_BIND_SET* dbstruct_create_bind_set() {
     DB_BIND_SET* bind_set;
     bind_set = (DB_BIND_SET*)malloc(sizeof(DB_BIND_SET));
     if (!bind_set) {
@@ -94,7 +94,7 @@ void dbstruct_destroy_bind_set(DB_BIND_SET *bind_set) {
 }
 
 
-DB_RESULT_SET* make_result_set() {
+DB_RESULT_SET* dbstruct_make_result_set() {
     DB_RESULT_SET* result_set;
 
     result_set = (DB_RESULT_SET*) malloc(sizeof(DB_RESULT_SET));	
@@ -146,7 +146,7 @@ int dbstruct_insert_field_meta(DB_RESULT_SET *result_set, char* field_name, DB_D
     
 }
 
-DB_ROW* create_row() {
+DB_ROW* dbstruct_create_row() {
     DB_ROW* row;
     row = (DB_ROW *) malloc(sizeof(DB_ROW));
     if (!row) {

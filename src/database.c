@@ -32,10 +32,10 @@ int main(void) {
     }
 
     printf("Connection successfully made to Mysql Database\n");
-    char* query = "SELECT * FROM Client_syc";
+    char* query = "SELECT * FROM Client_sync";
     
 
-    DB_RESULT_SET* result_set = make_result_set();
+    DB_RESULT_SET* result_set = dbstruct_make_result_set();
     if (result_set == NULL) {
 	printf("Result set error\n");
 	return -1;
@@ -47,7 +47,7 @@ int main(void) {
 
     printf("Printing Result Set-------------------------\n");
     dbstruct_print_result_set(result_set);
-
+    
     dbstruct_destroy_result_set(result_set);
     mysql_close(mysql);
     free_dbinfo(db);
@@ -257,7 +257,6 @@ int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESU
 	free(is_null);
 	mysql_free_result(res_meta);
 	mysql_stmt_close(stmt);
-	return -1;
     }
     printf("Result buffers bound successfully\n");
     
@@ -267,7 +266,7 @@ int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESU
 	if (status == 1 || status == MYSQL_NO_DATA) {
 	    break;
 	}
-	DB_ROW* row = create_row();
+	DB_ROW* row = dbstruct_create_row();
 
 	for (int i = 0; i < result_set->num_of_fields; i++) {
 	    if (res_bind[i].buffer_type == MYSQL_TYPE_LONG) {
