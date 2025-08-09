@@ -12,6 +12,7 @@ typedef struct db_info {
 
 
 
+#include "../includes/db_structures.h"
 
 #define SERVER_CONFIG_FILE  "/home/pius/Dev/Projects/Cred_Manager/config/server.conf"
 
@@ -20,6 +21,6 @@ typedef struct db_info {
 
 
 DB_INFO* get_dbinfo();
+int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* results);
 void free_dbinfo(DB_INFO* db_info);
-void get_results();
 #endif

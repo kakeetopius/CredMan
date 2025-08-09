@@ -63,6 +63,6 @@ $(BINDIR):
 -include $(CLIENT_DEP)
 
 #---------------Target for individual binary files (for testing a module)-------------
-%: src/%.c | $(BINDIR)
+%: src/%.c db_structures.o | $(BINDIR)
 	$(CC) $(CFLAGS) $< -o $(BINDIR)/$@ $(SERVER_LIBS)
 

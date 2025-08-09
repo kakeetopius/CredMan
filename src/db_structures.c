@@ -95,7 +95,8 @@ void dbstruct_destroy_bind_set(DB_BIND_SET *bind_set) {
 
 
 DB_RESULT_SET* make_result_set() {
-    DB_RESULT_SET *result_set;
+    DB_RESULT_SET* result_set;
+
     result_set = (DB_RESULT_SET*) malloc(sizeof(DB_RESULT_SET));	
     if (!result_set) {
 	printf("Malloc error: Could not get result set\n");
@@ -239,13 +240,14 @@ void dbstruct_destroy_result_set(DB_RESULT_SET *result_set) {
 	return;
     }
 
+
     /*-------------Freeing field metadata-------------------*/
     DB_FIELD_META* meta = result_set->field_metadata_first;
     if (meta) {
 	DB_FIELD_META *tmp;
 	while (meta != NULL) {
-	    free(meta->field_name);
 	    tmp = meta->next;
+	    free(meta->field_name);
 	    free(meta);
 	    meta = tmp;
 	}	

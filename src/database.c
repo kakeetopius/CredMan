@@ -32,170 +32,323 @@ int main(void) {
     }
 
     printf("Connection successfully made to Mysql Database\n");
-    get_results();
+    char* query = "SELECT * FROM Account WHERE user_name = ?";
+
+    
+    DB_BIND_SET* bind_set = create_bind_set();
+    char* name = "191777";
+    int len = strlen(name);
+
+    dbstruct_insert_bind_info(bind_set, DB_TYPE_STRING, name, len);
+
+    DB_RESULT_SET* result_set = make_result_set();
+    if (result_set == NULL) {
+	printf("Result set is NULL\n");
+	return -1;
+    }
+    int status = query_and_get_results(query, bind_set, 1, result_set);
+
+    if (status != 0) {
+	printf("No result set\n");
+	return -1;
+    }
+
+    printf("Result Set Metadata\n");
+    DB_FIELD_META* meta = result_set->field_metadata_first;
+    while(meta) {
+	printf("Field Name: %s\n", meta->field_name);
+	printf("Field Type: %d\n", meta->field_type);
+	meta = meta->next;
+    }
+
+    printf("\nPrinting the data\n");
+    DB_ROW* row = result_set->first_row;
+    if (!row) {
+	printf("No data returned\n");
+    }
+    while(row) {
+	DB_FIELD* field = row->first_field;
+	printf("\n\n");
+	while(field) {
+	    switch(field->type) {
+		case DB_TYPE_INT:
+		    printf("Int: %d\n", field->int_value);
+		    break;
+		case DB_TYPE_FLOAT:
+		    printf("Float: %f\n", field->float_value);
+		    break;
+		case DB_TYPE_STRING:
+		    printf("String: %s\n", field->string_value);
+		    break;
+	    }
+	    field = field->next;
+	}
+	row = row->next;
+    }
+
+    dbstruct_destroy_bind_set(bind_set);
+    dbstruct_destroy_result_set(result_set);
     mysql_close(mysql);
     free_dbinfo(db);
 }
 
-void query_and_get_results(char* query) {
+int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* result_set) {
     /*-------------Statement Handler--------------------*/
 
     MYSQL_STMT* stmt = mysql_stmt_init(mysql);
     if (!stmt) {
 	printf("Mysql Error: %s\n", mysql_stmt_error(stmt));
-	return;
+	return -1;
     }
 
     /*---------------Statement Preparation-------------*/
-    char* query = "SELECT * FROM Account";
     int status = mysql_stmt_prepare(stmt, query, strlen(query));
-    // unsigned long param_count = mysql_stmt_param_count(stmt);
+    unsigned long param_count = mysql_stmt_param_count(stmt);
 
     if (status != 0) {
 	printf("Mysql Error: %s\n", mysql_stmt_error(stmt));
-	return;
+	mysql_stmt_close(stmt);
+	return -1;
+    }
+    if (num_of_binds != param_count) {
+	printf("Bind paramters count mismatch\n");
+	mysql_stmt_close(stmt);
+	return -1;
     }
     printf("Statment prepared well\n");
 
- //    /*---------------Statement Binding-----------------*/
- //    int id = 3;
-	//
- //    MYSQL_BIND* bind = (MYSQL_BIND*) calloc(param_count, sizeof(MYSQL_BIND));
- //    if (!bind) {
-	// printf("Calloc Error\n");
-	// return;
- //    }
-	//
- //    bind[0].is_unsigned = true;
- //    bind[0].is_null = (my_bool *) 0;
- //    bind[0].buffer_type = MYSQL_TYPE_LONG;
- //    bind[0].buffer = &id;
- //    
- //    status = mysql_stmt_bind_param(stmt, bind);
- //    if (status != 0) {
-	// printf("Mysql Error: %s\n", mysql_stmt_error(stmt));
-	// return;
- //    }
-	//
- //    printf("Binding done well\n");
+    MYSQL_BIND* bind;
+    /*---------------Statement Binding-----------------*/
+    if (num_of_binds > 0) {
+	bind = (MYSQL_BIND*) calloc(num_of_binds, sizeof(MYSQL_BIND)); 
+	if (!bind) {
+	    printf("Calloc Error: could not get bind structure\n");
+	    mysql_stmt_close(stmt);
+	    return -1;
+	}
+
+	int bind_count = 0;
+	DB_BIND_INFO* bind_info = bind_set->first_bind;
+	while (bind_info != NULL) {
+	    if (bind_count >= num_of_binds) {
+		break;
+	    }
+	    switch(bind_info->type) {
+		case DB_TYPE_INT:
+		    bind[bind_count].is_unsigned = true;
+		    bind[bind_count].is_null = 0;
+		    bind[bind_count].buffer_type = MYSQL_TYPE_LONG;
+		    bind[bind_count].buffer = &bind_info->int_value;
+		    bind[bind_count].length = 0;
+		    break;
+		case DB_TYPE_FLOAT:
+		    bind[bind_count].length = 0;
+		    bind[bind_count].is_null = 0;
+		    bind[bind_count].buffer_type = MYSQL_TYPE_FLOAT;
+		    bind[bind_count].buffer = &bind_info->float_value;
+		    break;
+		case DB_TYPE_STRING:
+		    bind[bind_count].length = (unsigned long*)&bind_info->value_len;
+		    bind[bind_count].is_null = 0;
+		    bind[bind_count].buffer_type = MYSQL_TYPE_STRING;
+		    bind[bind_count].buffer = (char*)bind_info->string_value;
+		    bind[bind_count].buffer_length = (unsigned long)bind_info->value_len;
+		    break;
+	    }
+	    
+	    bind_info = bind_info->next;
+	    bind_count++;
+	}
+
+	status = mysql_stmt_bind_param(stmt, bind);
+	if (status != 0) {
+	    printf("Mysql Error: %s\n", mysql_stmt_error(stmt));
+	    mysql_stmt_close(stmt);
+	    if (num_of_binds > 0) free(bind);
+	    return -1;
+	}
+	printf("Binding done well\n");
+    }
+
+
     /*----------------Statement Execution------------*/
     status = mysql_stmt_execute(stmt);
     if (status != 0) {
 	printf("Mysql Error: %s\n", mysql_stmt_error(stmt));
-	return;
+	if (num_of_binds > 0) 	free(bind);
+	mysql_stmt_close(stmt);
+	return -1;
     }
 
     printf("Statement executed\n");
 
+    /*----------------RESULT SET----------------------------*/
+
     /*---------------Statement metadata--------------------*/
     MYSQL_RES* res_meta = mysql_stmt_result_metadata(stmt);
     if (!res_meta) {
-	printf("No result metadata");
+	printf("No result metadata\n");
+	mysql_stmt_close(stmt);
+	if (num_of_binds > 0) 	free(bind);
+	return -1;
     }
 
-    unsigned int num_meta_fields = mysql_num_fields(res_meta);
-    printf("Results have %llu rows\n", mysql_num_rows(res_meta));
-    printf("Result has %u fields\n", num_meta_fields);
+    result_set->num_of_fields = (int) mysql_num_fields(res_meta);
+
+    printf("Number of Fields: %d\n", result_set->num_of_fields);
 
     MYSQL_FIELD* res_meta_field = mysql_fetch_fields(res_meta);
     if (!res_meta_field) {
-	printf("Could not get fields from result metadata\n");
-	return;
+	printf("No data collected\n");
+	if (num_of_binds > 0) 	free(bind);
+	mysql_free_result(res_meta);
+	mysql_stmt_close(stmt);
+	dbstruct_destroy_result_set(result_set);
+	return -1;
     }
 
-    MYSQL_BIND* bind_res = (MYSQL_BIND*) calloc(num_meta_fields, sizeof(MYSQL_BIND)); 
-    unsigned long* lengths = (unsigned long*) calloc(num_meta_fields, sizeof(unsigned long));
-    my_bool* is_null = (my_bool*) calloc(num_meta_fields, sizeof(my_bool));
+    for (int i = 0; i < result_set->num_of_fields; i++) {
+	DB_DATA_TYPE db_type;
+	switch(res_meta_field[i].type) {
+	    case MYSQL_TYPE_LONG:		
+		db_type = DB_TYPE_INT;
+		break;
+	    case MYSQL_TYPE_FLOAT:
+	    case MYSQL_TYPE_DOUBLE:
+		db_type = DB_TYPE_FLOAT;
+		break;
+	    case MYSQL_TYPE_STRING:
+	    case MYSQL_TYPE_VARCHAR:
+	    case MYSQL_TYPE_VAR_STRING:
+		db_type = DB_TYPE_STRING;
+		break;
+	    default:
+		continue;
+	}
 
-    if (!bind_res || !lengths || !is_null) {
-	printf("Calloc error: Could not get bind structures for result\n");
-	return;
+	dbstruct_insert_field_meta(result_set, res_meta_field[i].name, db_type);
+
     }
     
-    printf("Bind structures set up successfully\n");
+    /*--------------------------MYSQL Result Set Binding------------------------------*/
+    MYSQL_BIND* res_bind;
+    res_bind = (MYSQL_BIND*) calloc(result_set->num_of_fields, sizeof(MYSQL_BIND));
+    
+    unsigned long* lengths = calloc(result_set->num_of_fields , sizeof(unsigned long));
 
-    int num_res = 1;
-    for (int i = 0; i < num_meta_fields; i++) {
-	if (res_meta_field[i].type == MYSQL_TYPE_LONG) {
-	    bind_res[i].buffer_type = MYSQL_TYPE_LONG;
-	    bind_res[i].buffer = &num_res;
-	    continue;
+    my_bool* is_null = calloc(result_set->num_of_fields, sizeof(my_bool));
+
+    if (!res_bind || !lengths || !is_null) {
+	printf("Calloc Error: Could not get result bind info\n");
+	if (num_of_binds > 0) 	free(bind);
+	mysql_free_result(res_meta);
+	mysql_stmt_close(stmt);
+    }
+    
+    printf("Result Bind structures set up successfully\n");
+    
+    /*------------------Setting up mysql bind for the different fields------------------*/
+    DB_FIELD_META* field_meta = result_set->field_metadata_first;
+    int int_value;
+    float float_value;
+    
+    for (int i = 0; i < result_set->num_of_fields; i++) {
+	if (!field_meta) {
+	    break;
 	}
-	bind_res[i].buffer = 0;
-	bind_res[i].buffer_length = 0;	
-	bind_res[i].is_null = &is_null[i];
-	bind_res[i].length = &lengths[i];
+	switch (field_meta->field_type) {
+	    case DB_TYPE_INT:
+		res_bind[i].buffer_type = MYSQL_TYPE_LONG;
+		res_bind[i].buffer = (char* )&int_value;
+		res_bind[i].is_null = &is_null[i];
+		res_bind[i].length = 0;
+		res_bind[i].buffer_length = 0;
+		break;
+	    case DB_TYPE_FLOAT:
+		res_bind[i].buffer_type = MYSQL_TYPE_FLOAT;
+		res_bind[i].buffer = (char* )&float_value;
+		res_bind[i].is_null = &is_null[i];
+		res_bind[i].length = 0;
+		res_bind[i].buffer_length = 0;
+		break;
+	    case DB_TYPE_STRING:
+		res_bind[i].buffer = 0;
+		res_bind[i].buffer_length = 0;
+		res_bind[i].is_null = &is_null[i];
+		res_bind[i].length = &lengths[i];
+		break;
+	}
+	field_meta = field_meta->next;
     }
 
-    status = mysql_stmt_bind_result(stmt, bind_res);
-
+    status = mysql_stmt_bind_result(stmt, res_bind);
     if (status != 0) {
 	printf("Could not bind results\n");
-	return;
+	if (num_of_binds > 0) 	free(bind);
+	free(res_bind);
+	free(lengths);
+	free(is_null);
+	mysql_free_result(res_meta);
+	mysql_stmt_close(stmt);
     }
-    printf("Results bound successfully\n") ;
-
+    printf("Result buffers bound successfully\n");
+    
 
     while(1) {
 	status = mysql_stmt_fetch(stmt);
 	if (status == 1 || status == MYSQL_NO_DATA) {
 	    break;
 	}
-	
-	for (int i = 0; i < num_meta_fields; i++) {
-	    if (is_null[i]) {
-		printf("Null Field\n");
-		continue;
-	    }
-	    if (lengths[i] <= 0 && bind_res[i].buffer_type == MYSQL_TYPE_VAR_STRING) {
-		printf("Length Zero or Less\n");
-		continue;
-	    }
-	    
+	DB_ROW* row = create_row();
 
-	    if (bind_res[i].buffer_type == MYSQL_TYPE_LONG) {
-		status = mysql_stmt_fetch_column(stmt, &bind_res[i], i, 0);
-		if (status) {
-		    printf("Could not fetch column");
+	for (int i = 0; i < result_set->num_of_fields; i++) {
+	    if (res_bind[i].buffer_type == MYSQL_TYPE_LONG) {
+		status = mysql_stmt_fetch_column(stmt, &res_bind[i], i, 0);
+		if (status != 0) {
+		    continue;
+		} 
+		dbstruct_insert_field(row, DB_TYPE_INT, res_bind[i].buffer, 0);
+	    }
+	    else if (res_bind[i].buffer_type == MYSQL_TYPE_FLOAT || res_bind[i].buffer_type == MYSQL_TYPE_DOUBLE) {
+		status = mysql_stmt_fetch_column(stmt, &res_bind[i], i, 0);
+		if (status != 0) {
+		    continue;
+		} 
+		dbstruct_insert_field(row, DB_TYPE_FLOAT, res_bind[i].buffer, 0);
+	    }
+	    else {    //for strings
+		char* buff = calloc(1, lengths[i]);
+		if (!buff) {
+		    printf("Calloc Error\n");
+		    continue;
 		}
-		printf("Int: %d\n", num_res);
-		continue;
-	    }
+		res_bind[i].buffer = (char *)buff;
+		res_bind[i].buffer_length = lengths[i];
 
-	    char* buff = calloc(1,lengths[i]);
-	    if (!buff) {
-		printf("calloc error\n");
-		continue;
-	    }
-	    bind_res[i].buffer = (char* )buff;
-	    bind_res[i].buffer_length = lengths[i];
-	    status = mysql_stmt_fetch_column(stmt, &bind_res[i], i, 0);
-	    if (status != 0) {
-		printf("Could not fetch column\n");
-		continue;
-	    }
-
-	    switch(res_meta_field[i].type) {
-		case MYSQL_TYPE_STRING:
-		case MYSQL_TYPE_VAR_STRING:
-		    printf("String: %.*s\n", (int) lengths[i], buff);
-		    break;
-		default:
-		    printf("Can't Print\n");
-		    printf("Type in Numeric Form: %d\n", res_meta_field[i].type);
-		    break;
-	    }
-
-	    free(buff);
+		status = mysql_stmt_fetch_column(stmt, &res_bind[i], i, 0);
+		if (status != 0) {
+		    continue;
+		    free(buff);
+		} 
+		dbstruct_insert_field(row, DB_TYPE_STRING, res_bind[i].buffer, 0);
+		free(buff);
+    	    }
+	
 	}
-	printf("\n\n");
+	
+	dbstruct_insert_row(result_set, row);
     }
-    free(bind_res);
+    
+
+
+    free(res_bind);
     free(lengths);
     free(is_null);
-    /*--------------Results--------------------*/
+    if (num_of_binds > 0)
+	free(bind);
     mysql_free_result(res_meta);
     mysql_stmt_close(stmt);
+    return 0;
 }
 
 DB_INFO* get_dbinfo() {
