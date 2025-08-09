@@ -84,4 +84,7 @@ int dbstruct_insert_row(DB_RESULT_SET *result_set, DB_ROW *row);
 int dbstruct_insert_field(DB_ROW *row, DB_DATA_TYPE type, void* value, int value_len);
 
 void dbstruct_destroy_result_set(DB_RESULT_SET *result_set);
+
+void dbstruct_print_result_set(DB_RESULT_SET* result_set);
+
 #endif

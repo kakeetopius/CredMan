@@ -19,8 +19,15 @@ typedef struct db_info {
 #define DB_CONFIG_FILE      "/home/pius/Dev/Projects/Cred_Manager/config/db.conf"
 
 
+/*-------------------------OPTIONS FOR THE query_database FUNCTION-----------------*/
+typedef enum {
+    QUERY_ONLY,
+    QUERY_AND_GET_RESULTS
+}QUERY_OPTIONS;
+
+
 
 DB_INFO* get_dbinfo();
-int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* results);
+int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* results, QUERY_OPTIONS options);
 void free_dbinfo(DB_INFO* db_info);
 #endif

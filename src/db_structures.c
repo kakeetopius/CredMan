@@ -283,4 +283,37 @@ void dbstruct_destroy_result_set(DB_RESULT_SET *result_set) {
     free(result_set);
 }
 
+void dbstruct_print_result_set(DB_RESULT_SET* result_set) {
+    if (!result_set) {
+	printf("No result set to print\n");
+	return;
+    }
 
+    DB_ROW* row = result_set->first_row;
+    DB_FIELD* field;
+    DB_FIELD_META* meta;
+
+    while (row) {
+	field = row->first_field;
+	meta = result_set->field_metadata_first;
+
+	while (field && meta) {
+	    switch (field->type) {
+		case DB_TYPE_INT:
+		    printf("%s: %d\n", meta->field_name, field->int_value);
+		    break;
+		case DB_TYPE_FLOAT:
+		    printf("%s: %f\n", meta->field_name, field->float_value);
+		    break;
+		case DB_TYPE_STRING:
+		    printf("%s: %s\n", meta->field_name, field->string_value);
+		    break;
+	    }
+
+	    meta = meta->next;
+	    field = field->next;
+	}	
+	printf("\n");
+	row = row->next;
+    }
+}

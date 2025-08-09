@@ -32,67 +32,28 @@ int main(void) {
     }
 
     printf("Connection successfully made to Mysql Database\n");
-    char* query = "SELECT * FROM Account WHERE user_name = ?";
-
+    char* query = "SELECT * FROM Client_syc";
     
-    DB_BIND_SET* bind_set = create_bind_set();
-    char* name = "191777";
-    int len = strlen(name);
-
-    dbstruct_insert_bind_info(bind_set, DB_TYPE_STRING, name, len);
 
     DB_RESULT_SET* result_set = make_result_set();
     if (result_set == NULL) {
-	printf("Result set is NULL\n");
+	printf("Result set error\n");
 	return -1;
     }
-    int status = query_and_get_results(query, bind_set, 1, result_set);
+    int status;
 
-    if (status != 0) {
-	printf("No result set\n");
-	return -1;
-    }
+    status = query_database(query, NULL, 0, result_set, QUERY_AND_GET_RESULTS);
+    printf("Affected Rows: %d\n", status);
 
-    printf("Result Set Metadata\n");
-    DB_FIELD_META* meta = result_set->field_metadata_first;
-    while(meta) {
-	printf("Field Name: %s\n", meta->field_name);
-	printf("Field Type: %d\n", meta->field_type);
-	meta = meta->next;
-    }
+    printf("Printing Result Set-------------------------\n");
+    dbstruct_print_result_set(result_set);
 
-    printf("\nPrinting the data\n");
-    DB_ROW* row = result_set->first_row;
-    if (!row) {
-	printf("No data returned\n");
-    }
-    while(row) {
-	DB_FIELD* field = row->first_field;
-	printf("\n\n");
-	while(field) {
-	    switch(field->type) {
-		case DB_TYPE_INT:
-		    printf("Int: %d\n", field->int_value);
-		    break;
-		case DB_TYPE_FLOAT:
-		    printf("Float: %f\n", field->float_value);
-		    break;
-		case DB_TYPE_STRING:
-		    printf("String: %s\n", field->string_value);
-		    break;
-	    }
-	    field = field->next;
-	}
-	row = row->next;
-    }
-
-    dbstruct_destroy_bind_set(bind_set);
     dbstruct_destroy_result_set(result_set);
     mysql_close(mysql);
     free_dbinfo(db);
 }
 
-int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* result_set) {
+int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* result_set, QUERY_OPTIONS options) {
     /*-------------Statement Handler--------------------*/
 
     MYSQL_STMT* stmt = mysql_stmt_init(mysql);
@@ -182,6 +143,14 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 
     printf("Statement executed\n");
 
+    /*---------If no RESULT SET expected--------------------------*/
+    if (options == QUERY_ONLY) {
+	int affected_rows = mysql_affected_rows(mysql);
+	if (num_of_binds > 0) free(bind);
+	mysql_stmt_close(stmt);
+	return affected_rows;
+    }
+
     /*----------------RESULT SET----------------------------*/
 
     /*---------------Statement metadata--------------------*/
@@ -195,7 +164,6 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 
     result_set->num_of_fields = (int) mysql_num_fields(res_meta);
 
-    printf("Number of Fields: %d\n", result_set->num_of_fields);
 
     MYSQL_FIELD* res_meta_field = mysql_fetch_fields(res_meta);
     if (!res_meta_field) {
@@ -203,7 +171,6 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 	if (num_of_binds > 0) 	free(bind);
 	mysql_free_result(res_meta);
 	mysql_stmt_close(stmt);
-	dbstruct_destroy_result_set(result_set);
 	return -1;
     }
 
@@ -240,7 +207,7 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 
     if (!res_bind || !lengths || !is_null) {
 	printf("Calloc Error: Could not get result bind info\n");
-	if (num_of_binds > 0) 	free(bind);
+    	if (num_of_binds > 0) 	free(bind);
 	mysql_free_result(res_meta);
 	mysql_stmt_close(stmt);
     }
@@ -290,10 +257,11 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 	free(is_null);
 	mysql_free_result(res_meta);
 	mysql_stmt_close(stmt);
+	return -1;
     }
     printf("Result buffers bound successfully\n");
     
-
+    int num_rows = 0;
     while(1) {
 	status = mysql_stmt_fetch(stmt);
 	if (status == 1 || status == MYSQL_NO_DATA) {
@@ -337,8 +305,10 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 	}
 	
 	dbstruct_insert_row(result_set, row);
+	num_rows++;
     }
     
+    result_set->num_of_rows = num_rows;
 
 
     free(res_bind);
@@ -348,7 +318,7 @@ int query_and_get_results(char* query, DB_BIND_SET* bind_set, int num_of_binds, 
 	free(bind);
     mysql_free_result(res_meta);
     mysql_stmt_close(stmt);
-    return 0;
+    return num_rows;
 }
 
 DB_INFO* get_dbinfo() {
@@ -448,5 +418,6 @@ void free_dbinfo(DB_INFO *db_info) {
 
     free(db_info);
 } 
+
 
 
