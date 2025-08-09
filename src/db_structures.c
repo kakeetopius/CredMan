@@ -1,3 +1,13 @@
+/*
+ * This module contains the implementation of functions
+ * used to interact with the different structures
+ * used to represent and retrieve information from the
+ * database.
+ *
+ * This module is only relevant to the database.c file and
+ * is not utilised anywhere else.*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -317,3 +327,104 @@ void dbstruct_print_result_set(DB_RESULT_SET* result_set) {
 	row = row->next;
     }
 }
+
+DB_INFO* get_dbinfo() {
+    FILE* cred_file = fopen(DB_CONFIG_FILE, "r"); 
+    if (!cred_file) {
+	perror("Error opening credential file ");
+	return NULL;
+    }
+    
+    DB_INFO* db_info = (DB_INFO*) malloc(sizeof(DB_INFO));
+    db_info->user = NULL;
+    db_info->host = NULL;
+    db_info->passwd = NULL;
+    db_info->dbname = NULL;
+    db_info->port = 3306;
+
+    char buff[100] = {0};
+    char* saveptr;
+
+    while(fgets(buff, sizeof(buff), cred_file)) {
+	if (strcmp(buff, "\n") == 0) {     //if empty line
+	    continue;
+	}
+	
+	char* info_name = strtok_r(buff, ":", &saveptr);
+
+	if (!info_name) {
+	    printf("Error parsing credential file\n");
+	    printf("Syntax Error\n");
+	    fclose(cred_file);
+	    return NULL;
+	}
+
+	char* info_value = strtok_r(NULL, ":", &saveptr);
+
+	if (!info_value) {
+	    printf("Error parsing credential file\n");
+	    printf("Syntax Error\n");
+	    fclose(cred_file);
+	    return NULL;
+	}
+
+	/*---Removing new line character if found-----*/
+	int newline_pos = strcspn(info_value, "\n");
+	info_value[newline_pos] = '\0';
+
+	if (strcmp(info_name, "host") == 0) {
+	    db_info->host = strdup(info_value);
+	}
+	else if (strcmp(info_name, "uname") == 0) {
+	    db_info->user = strdup(info_value);
+	}
+	else if (strcmp(info_name, "passwd") == 0) {
+	    db_info->passwd = strdup(info_value);
+	}
+	else if (strcmp(info_name, "db") == 0) {
+	    db_info->dbname = strdup(info_value);
+	}
+	else if (strcmp(info_name, "port") == 0) {
+	    db_info->port = atoi(info_value);
+	}
+	else { 
+	    printf("Config File error. Unknown field: %s\n", info_name);
+	    free_dbinfo(db_info);
+	    fclose(cred_file);
+	    return NULL;
+	}
+    }
+    
+    if (!db_info->host || !db_info->user || !db_info->dbname || !db_info->passwd) {
+	printf("Config File error. Missing some crucial field(s)\n");
+	free_dbinfo(db_info);
+	return NULL;
+    }
+
+    fclose(cred_file);
+    return db_info;
+} 
+
+void free_dbinfo(DB_INFO *db_info) {
+    if (!db_info) {
+	return;
+    } 
+
+    if (db_info->host) {
+	free(db_info->host);
+    }
+    if (db_info->passwd) {
+	free(db_info->passwd);
+    }
+    if (db_info->user) {
+	free(db_info->user);
+    }
+    if (db_info->dbname) {
+	free(db_info->dbname);
+    }
+
+    free(db_info);
+} 
+
+
+

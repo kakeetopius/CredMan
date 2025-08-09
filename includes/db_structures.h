@@ -1,6 +1,21 @@
 #ifndef DB_STRUCTUES_H
 #define DB_STRUCTUES_H
+
+#define SERVER_CONFIG_FILE  "/home/pius/Dev/Projects/Cred_Manager/config/server.conf"
+
+#define DB_CONFIG_FILE      "/home/pius/Dev/Projects/Cred_Manager/config/db.conf"
+
+
 /*---------------STRUCTS FOR QUERYING AND RECEIVING RESULTS-----*/
+
+/*-----------DATABASE DETAILS STRUCT------------*/
+typedef struct db_info {
+    char* host;
+    char* user;
+    char* passwd;
+    char* dbname;
+    int port;
+} DB_INFO;
 
 /*---------Enum for data types used in this project----------------------*/
 typedef enum db_data_type {
@@ -91,7 +106,9 @@ DB_ROW* dbstruct_create_row();
  * Paramters:
  * 1. bind_set: a pointer to a struct DB_BIND_SET created by dbstruct_create_bind_set() function to which the binding information should be added.
  * 2. type: the type of data to be inserted. The options are memebers of DB_DATA_TYPE
- * 3. value_len: the length of the value to be inserted. It is only useful for DB_DATA_TYPE DB_TYPE_STRING when the value is a string. For the rest it is not considered and a 0 may be passed.
+ * 3. value: is a buffer containing the data to be bound
+ * NOTE: for string buffers it is better to not use string literals but use stack based buffers/arrays or dynamically allocated strings that are properly null terminated.
+ * 4. value_len: the length of the buffer value to be inserted. It is only useful for DB_DATA_TYPE DB_TYPE_STRING when the value is a string and it should correspond to the buffer size and not necessarily the string length itslef.. For the rest it is not considered and a 0 may be passed.
  *
  * Return Values:
  * 1.  0 on success
@@ -122,10 +139,41 @@ int dbstruct_insert_field_meta(DB_RESULT_SET *result_set, char* field_name, DB_D
  * */
 int dbstruct_insert_row(DB_RESULT_SET *result_set, DB_ROW *row);
 
+/*Function inserts a field information into a row of type DB_ROW. Only used in database.c module and is not applicable else where.
+ * Paramters:
+ * 1. row: A pointer to a structure of type DB_ROW representing the row in which to insert the field
+ * 2. type: The data type of the value of the field being added. Options are memebers of DB_DATA_TYPE
+ * 3. value: a pointer of the buffer where the value to add is stored
+ * 4. value_len: the size in bytes of the buffer and is only applicable for type DB_TYPE_STRING for other types a 0 can suffice.
+ *
+ * Return Values:
+ * 1. 0 on success
+ * 2. a number less than 0 on error*/
 int dbstruct_insert_field(DB_ROW *row, DB_DATA_TYPE type, void* value, int value_len);
+
+/*Function frees up memory used up by a bind_set
+ * Parameters:
+ * 1. bind_set: A pointer to the bind_set of type DB_BIND_SET to free*/
 void dbstruct_destroy_bind_set(DB_BIND_SET *bind_set);
+
+
+/*Function frees up all memory used up by a result set including all its field metadata and rows
+ * Parameters:
+ * 1. result_set: The result set to free*/
 void dbstruct_destroy_result_set(DB_RESULT_SET *result_set);
 
+
+/*Function prints out information in a result set, useful for debugging or logging
+ * Parameters:
+ * 1. result_set: the result set to print out*/
 void dbstruct_print_result_set(DB_RESULT_SET* result_set);
 
+/*Function retrieves database information from the configuration file db.conf
+ * Return Value:
+ * A pointer to struct DB_INFO containing information retrieved from the configuration file
+ * The struct should be freed afterwards with a call to free_dbinfo() function*/
+DB_INFO* get_dbinfo();
+
+/*Function frees up memory utilised by a DB_INFO struct that contained configuration details*/
+void free_dbinfo(DB_INFO* db_info);
 #endif

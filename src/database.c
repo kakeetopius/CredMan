@@ -1,59 +1,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mariadb/mysql.h>
 #include <stdbool.h>
 
 #include "../includes/database.h"
 
-/*---------Some global variables used by different functions in module----------*/
-MYSQL* mysql;
 
-int main(void) {
+
+MYSQL* set_up_db_connection() {
     DB_INFO* db = get_dbinfo();
 
+    MYSQL* mysql;
     if (!db) {
 	printf("Could not get database credentials\n");
-	return -1;
+	return NULL;
     }
     
     mysql = mysql_init(NULL);
 
     if (!mysql) {
 	printf("Mysql handle could not be created\n");
-	return -1;
+	return NULL;
     }
 
-    MYSQL* mysql_status = mysql_real_connect(mysql, db->host, db->user, db->passwd, db->dbname, db->port, NULL, 0);
-
-    if (!mysql_status) {
+    if (mysql_real_connect(mysql, db->host, db->user, db->passwd, db->dbname, db->port, NULL, 0) == NULL) {
 	printf("Error connecting to mysql Database: %s\n", mysql_error(mysql));
-	return -1;
+	mysql_close(mysql);
+	return NULL;
     }
-
-    printf("Connection successfully made to Mysql Database\n");
-    char* query = "SELECT * FROM Client_sync";
     
-
-    DB_RESULT_SET* result_set = dbstruct_make_result_set();
-    if (result_set == NULL) {
-	printf("Result set error\n");
-	return -1;
-    }
-    int status;
-
-    status = query_database(query, NULL, 0, result_set, QUERY_AND_GET_RESULTS);
-    printf("Affected Rows: %d\n", status);
-
-    printf("Printing Result Set-------------------------\n");
-    dbstruct_print_result_set(result_set);
-    
-    dbstruct_destroy_result_set(result_set);
-    mysql_close(mysql);
     free_dbinfo(db);
+    return mysql;
 }
 
-int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* result_set, QUERY_OPTIONS options) {
+void close_db_connection(MYSQL* mysql_handle) {
+    if (mysql_handle)
+	mysql_close(mysql_handle);
+} 
+
+
+int query_database(MYSQL* mysql, char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESULT_SET* result_set, QUERY_OPTIONS options) {
     /*-------------Statement Handler--------------------*/
 
     MYSQL_STMT* stmt = mysql_stmt_init(mysql);
@@ -109,10 +95,12 @@ int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESU
 		    bind[bind_count].buffer = &bind_info->float_value;
 		    break;
 		case DB_TYPE_STRING:
-		    bind[bind_count].length = (unsigned long*)&bind_info->value_len;
 		    bind[bind_count].is_null = 0;
 		    bind[bind_count].buffer_type = MYSQL_TYPE_STRING;
 		    bind[bind_count].buffer = (char*)bind_info->string_value;
+		    int string_len;
+		    string_len = strlen((char*)bind_info->string_value);
+		    bind[bind_count].length = (unsigned long*)&string_len;
 		    bind[bind_count].buffer_length = (unsigned long)bind_info->value_len;
 		    break;
 	    }
@@ -319,104 +307,4 @@ int query_database(char* query, DB_BIND_SET* bind_set, int num_of_binds, DB_RESU
     mysql_stmt_close(stmt);
     return num_rows;
 }
-
-DB_INFO* get_dbinfo() {
-    FILE* cred_file = fopen(DB_CONFIG_FILE, "r"); 
-    if (!cred_file) {
-	perror("Error opening credential file ");
-	return NULL;
-    }
-    
-    DB_INFO* db_info = (DB_INFO*) malloc(sizeof(DB_INFO));
-    db_info->user = NULL;
-    db_info->host = NULL;
-    db_info->passwd = NULL;
-    db_info->dbname = NULL;
-    db_info->port = 3306;
-
-    char buff[100] = {0};
-    char* saveptr;
-
-    while(fgets(buff, sizeof(buff), cred_file)) {
-	if (strcmp(buff, "\n") == 0) {     //if empty line
-	    continue;
-	}
-	
-	char* info_name = strtok_r(buff, ":", &saveptr);
-
-	if (!info_name) {
-	    printf("Error parsing credential file\n");
-	    printf("Syntax Error\n");
-	    fclose(cred_file);
-	    return NULL;
-	}
-
-	char* info_value = strtok_r(NULL, ":", &saveptr);
-
-	if (!info_value) {
-	    printf("Error parsing credential file\n");
-	    printf("Syntax Error\n");
-	    fclose(cred_file);
-	    return NULL;
-	}
-
-	/*---Removing new line character if found-----*/
-	int newline_pos = strcspn(info_value, "\n");
-	info_value[newline_pos] = '\0';
-
-	if (strcmp(info_name, "host") == 0) {
-	    db_info->host = strdup(info_value);
-	}
-	else if (strcmp(info_name, "uname") == 0) {
-	    db_info->user = strdup(info_value);
-	}
-	else if (strcmp(info_name, "passwd") == 0) {
-	    db_info->passwd = strdup(info_value);
-	}
-	else if (strcmp(info_name, "db") == 0) {
-	    db_info->dbname = strdup(info_value);
-	}
-	else if (strcmp(info_name, "port") == 0) {
-	    db_info->port = atoi(info_value);
-	}
-	else { 
-	    printf("Config File error. Unknown field: %s\n", info_name);
-	    free_dbinfo(db_info);
-	    fclose(cred_file);
-	    return NULL;
-	}
-    }
-    
-    if (!db_info->host || !db_info->user || !db_info->dbname || !db_info->passwd) {
-	printf("Config File error. Missing some crucial field(s)\n");
-	free_dbinfo(db_info);
-	return NULL;
-    }
-
-    fclose(cred_file);
-    return db_info;
-} 
-
-void free_dbinfo(DB_INFO *db_info) {
-    if (!db_info) {
-	return;
-    } 
-
-    if (db_info->host) {
-	free(db_info->host);
-    }
-    if (db_info->passwd) {
-	free(db_info->passwd);
-    }
-    if (db_info->user) {
-	free(db_info->user);
-    }
-    if (db_info->dbname) {
-	free(db_info->dbname);
-    }
-
-    free(db_info);
-} 
-
-
 
