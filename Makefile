@@ -10,8 +10,8 @@ CLIENT_LIBS =
 SERVER_LIBS = -lmariadb
 
 #----------------Source Files----------------------------
-CLIENT_SRCS = src/client_main.c src/secure.c src/account.c
-SERVER_SRCS = src/database.c src/server_main.c src/db_structures.c
+CLIENT_SRCS = src/client_main.c src/secure.c src/account.c src/client_networking.c
+SERVER_SRCS = src/database.c src/server_main.c src/db_structures.c src/server_networking.c
 
 
 #----------------Object Files-----------------------------
