@@ -13,7 +13,7 @@ Account_list createAccList() {
         return NULL;
     }
     lst->head = NULL;
-    lst->tail = NULL;
+    // lst->tail = NULL;
     return lst;
 }
 
@@ -176,3 +176,4 @@ void destroyAccList(Account_list lst) {
 
     free(lst);
 }
+

@@ -2,7 +2,7 @@
 #define DATABASE_H
 
 #include "../includes/db_structures.h"
-#include <mariadb/mysql.h>
+#include <mysql/mysql.h>
 
 
 /*-------------------------OPTIONS FOR THE query_database FUNCTION-----------------*/
