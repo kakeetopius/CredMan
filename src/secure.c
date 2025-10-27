@@ -1,5 +1,4 @@
 #include "../includes/secure.h"
-#include <sodium.h>
 #include <string.h>
 
 int encrypt_key(char *pass) {
