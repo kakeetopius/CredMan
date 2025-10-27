@@ -7,11 +7,11 @@ INCLUDEDIR = includes
 CC = gcc
 CFLAGS =  -Wall -g -I$(INCLUDEDIR) -MMD -MP
 CLIENT_LIBS = 
-SERVER_LIBS = -lmariadb
+SERVER_LIBS = 
 
 #----------------Source Files----------------------------
-CLIENT_SRCS = src/client_main.c src/secure.c src/account.c
-SERVER_SRCS = src/database.c src/server_main.c src/db_structures.c
+CLIENT_SRCS = src/client_main.c src/account.c src/db_access.h
+SERVER_SRCS = 
 
 
 #----------------Object Files-----------------------------
@@ -62,7 +62,7 @@ $(BINDIR):
 -include $(SERVER_DEP)
 -include $(CLIENT_DEP)
 
-#---------------Target for individual binary files (for testing a module)-------------
-%: src/%.c db_structures.o | $(BINDIR)
-	$(CC) $(CFLAGS) $< -o $(BINDIR)/$@ $(SERVER_LIBS)
+# #---------------Target for individual binary files (for testing a module)-------------
+# %: src/%.c db_structures.o | $(BINDIR)
+# 	$(CC) $(CFLAGS) $< -o $(BINDIR)/$@ $(SERVER_LIBS)
 
