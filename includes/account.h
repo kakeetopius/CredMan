@@ -24,6 +24,12 @@ typedef struct account {
     char* username;;		/*The username used for the account*/
 }account, *Account;
 
+enum db_fields {
+    DB_ACC_NAME,
+    DB_USER_NAME,
+    DB_ACC_PASSWORD
+};
+
 Account_list createAccList();
 int insert_acc(Account_list lst, char* name, char* pass, char* uname);
 int delete_acc(Account_list lst, char* name);

@@ -14,3 +14,4 @@
         - Remove a credential.
         - Update/change credential details
     - These functions from this API should work with the already existing structures from the account.h file.
+5. Create Actual Sqlite3 Database with existing credentials.

@@ -6,11 +6,11 @@ INCLUDEDIR = includes
 #--------------Compiler options----------------------
 CC = gcc
 CFLAGS =  -Wall -g -I$(INCLUDEDIR) -MMD -MP
-CLIENT_LIBS = 
+CLIENT_LIBS = -lsqlcipher
 SERVER_LIBS = 
 
 #----------------Source Files----------------------------
-CLIENT_SRCS = src/client_main.c src/account.c src/db_access.h
+CLIENT_SRCS = src/client_main.c src/account.c src/db_access.c
 SERVER_SRCS = 
 
 
