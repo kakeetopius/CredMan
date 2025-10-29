@@ -10,28 +10,28 @@
 #include "../includes/error_messages.h"
 #include "../includes/util.h"
 
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-	printf("%s", GENERAL_MESSAGE);
-	return -1;
-    } else if (strcmp(argv[1], "help") == 0) {
-	printf("%s", GENERAL_MESSAGE);
-	return 0;
-    } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {
-	return print_help(argv[1]);
-    }
-
-    sqlite3 *db_con = open_db_con();
-    if (!db_con) {
-	return -1;
-    }
-
-    int status=  handle_input(argc, argv, db_con);
-
-    sqlite3_close(db_con);
-
-    return status;
-}
+// int main(int argc, char *argv[]) {
+//     if (argc < 2) {
+// 	printf("%s", GENERAL_MESSAGE);
+// 	return -1;
+//     } else if (strcmp(argv[1], "help") == 0) {
+// 	printf("%s", GENERAL_MESSAGE);
+// 	return 0;
+//     } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {
+// 	return print_help(argv[1]);
+//     }
+//
+//     sqlite3 *db_con = open_db_con();
+//     if (!db_con) {
+// 	return -1;
+//     }
+//
+//     int status=  handle_input(argc, argv, db_con);
+//
+//     sqlite3_close(db_con);
+//
+//     return status;
+// }
 
 /*--- Dispatch function to handle adding new accounts-----*/
 int add_acc(char **argv, int argc, sqlite3 *db) {

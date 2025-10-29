@@ -2,31 +2,43 @@
 #include "../includes/db_access.h"
 #include "../includes/error_messages.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-int print_help(char* subcommand) {
+int main(void) {
+    Account_list a_lst = createAccList();
+    
+    int status = get_creds_from_batch_file(a_lst, "batch.txt");
+
+    if (status != SUCCESS_OP) {
+	destroyAccList(a_lst);
+	return -1;
+    }
+
+    int i = 1;
+    for (Acc_node tmp = a_lst->head; tmp != NULL; tmp = tmp->next) {
+	printf("Line %d Name: %s User: %s Pass: %s\n", i, tmp->name, tmp->username, tmp->password);
+	i++;
+    }
+    destroyAccList(a_lst);
+}
+int print_help(char *subcommand) {
     if (strcmp(subcommand, "add") == 0) {
 	printf("%s", ADD_MESSAGE);
-    }
-    else if (strcmp(subcommand, "change") == 0) {
+    } else if (strcmp(subcommand, "change") == 0) {
 	printf("%s", CHANGE_MESSAGE);
-    }
-    else if (strcmp(subcommand, "delete") == 0) {
+    } else if (strcmp(subcommand, "delete") == 0) {
 	printf("%s", DELETE_MESSAGE);
-    } 
-    else if (strcmp(subcommand, "search") == 0) {
+    } else if (strcmp(subcommand, "search") == 0) {
 	printf("%s", SEARCH_MESSAGE);
-    }
-    else if (strcmp(subcommand, "ls") == 0) {
+    } else if (strcmp(subcommand, "ls") == 0) {
 	printf("%s", LS_MESSAGE);
-    }
-    else {
+    } else {
 	printf("Unknown subcommand: %s\n", subcommand);
 	printf("%s", GENERAL_MESSAGE);
 	return -1;
     }
-    
+
     return 0;
 }
 
@@ -144,3 +156,126 @@ void flush_stdin() {
     while ((c = getchar()) != '\n' && c != EOF)
 	;
 }
+
+int get_creds_from_batch_file(Account_list a_lst, char *batch_file_name) {
+    FILE *batch_file = fopen(batch_file_name, "r");
+    if (!batch_file) {
+	perror("Error opening batch file");
+	return GENERAL_ERROR;
+    }
+
+    char batch_file_line[BATCH_FILE_LINE_LEN];
+    char acc_name[CRED_BUFF_LEN];
+    char user_name[CRED_BUFF_LEN];
+    char password[CRED_BUFF_LEN];
+
+    int status;
+    int line_no = 1;
+    while (fgets(batch_file_line, BATCH_FILE_LINE_LEN, batch_file) != NULL) {
+	if (feof(batch_file))
+	    break;
+	else if (ferror(batch_file)) {
+	    perror("Error reading batch file");
+	    fclose(batch_file);
+	    return GENERAL_ERROR;
+	}
+	status = split_batch_line(batch_file_line, acc_name, user_name, password, line_no); 
+	if (status == GENERAL_ERROR) {
+	    fclose(batch_file);
+	    return GENERAL_ERROR;
+	}
+	else if (status == LINE_EMPTY) {
+	    line_no++;
+	    continue;
+	}
+	status = insert_acc(a_lst, acc_name, password, user_name); 
+	if (status != SUCCESS_OP) {
+	    fclose(batch_file);
+	    return GENERAL_ERROR;
+	}
+	line_no++;
+    }
+    fclose(batch_file);
+    return SUCCESS_OP;
+}
+
+int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *password, int line_no) {
+    if (!batch_line || !acc_name || !user_name || !password) {
+	return GENERAL_ERROR;
+    }
+    
+    if (batch_line[0] == '\n') {
+	printf("Line %d is empty. Skipping it.\n", line_no);
+	return LINE_EMPTY;
+    }
+
+    int first_comma_index = 0;
+    int second_comma_index = 0;
+    int batch_line_strlen = strlen(batch_line);
+
+    for (int i = 0; i < batch_line_strlen; i++) {
+	if (batch_line[i] == ',') {
+	    first_comma_index = i;
+	    break;
+	}
+    }
+
+    for (int i = first_comma_index + 1; i < batch_line_strlen; i++) {
+	if (batch_line[i] == ',') {
+	    second_comma_index = i;
+	    break;
+	}
+    }
+    if (first_comma_index == 0 || second_comma_index == 0) {
+	printf("Parse error on line number: %d\n", line_no);
+	return GENERAL_ERROR;
+    }
+
+    /*
+     * Acc_name from index 0 to first_comma_index - 1
+     * user_name from first_comma_index + 1 to second_comma_index -1
+     * password from second_comma_index + 1 to batch_line_strlen - 1
+     */
+
+    int acc_name_len = first_comma_index;
+    int user_name_len = second_comma_index - first_comma_index - 1; 
+    int password_len = batch_line_strlen - second_comma_index - 1;
+
+    if (acc_name_len >= CRED_BUFF_LEN) {
+	printf("Account name on line %d is too long. Limit it to %d characters.\n", line_no, CRED_BUFF_LEN);
+	return GENERAL_ERROR;
+    }
+    else if (user_name_len >= CRED_BUFF_LEN) {
+	printf("User name on line %d is too long. Limit it to %d characters\n", line_no, CRED_BUFF_LEN);
+	return GENERAL_ERROR;
+    }
+    else if (password_len >= CRED_BUFF_LEN) {
+	printf("Password on line %d is too long. Limit it to %d characters.\n", line_no, CRED_BUFF_LEN);
+	return GENERAL_ERROR;
+    }
+
+    for (int i = 0; i < first_comma_index; i++) {
+	acc_name[i] = batch_line[i];
+    }
+    for (int i = 0, j = first_comma_index + 1; j < second_comma_index; j++, i++) {
+	user_name[i] = batch_line[j];
+    }
+    for (int i = 0, j = second_comma_index + 1; j < batch_line_strlen; i++, j++) {
+	password[i] = batch_line[j];
+    }
+
+    /* Clearing any newline characters for the last field(password) and properly null terminating*/
+    if (strchr(password, '\n') != NULL) {
+	password[strcspn(password, "\n")] = '\0';
+    }
+    else {
+	password[password_len] = '\0';
+    }
+
+    user_name[user_name_len] = '\0';
+    acc_name[acc_name_len] = '\0';
+
+    return SUCCESS_OP;
+}
+
+

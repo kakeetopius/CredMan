@@ -61,8 +61,8 @@ int decrypt_db(sqlite3 *db) {
 	return GENERAL_ERROR;
     }
 
-    char pragma_stmt[100];
-    snprintf(pragma_stmt, 100, "PRAGMA key = \'%s\';", pass);
+    char pragma_stmt[CRED_BUFF_LEN + 32];
+    snprintf(pragma_stmt, CRED_BUFF_LEN + 32, "PRAGMA key = \'%s\';", pass);
 
     char *errmsg = NULL;
 
@@ -108,8 +108,8 @@ int change_db_master_password(sqlite3 *db) {
 	return GENERAL_ERROR;
     }
 
-    char pragma_stmt[100];
-    snprintf(pragma_stmt, 100, "PRAGMA rekey = \'%s\';", pass);
+    char pragma_stmt[CRED_BUFF_LEN + 32];
+    snprintf(pragma_stmt, CRED_BUFF_LEN + 32, "PRAGMA rekey = \'%s\';", pass);
 
     char *errmsg = NULL;
 
@@ -397,8 +397,8 @@ int create_new_database() {
 	" password VARCHAR(256) NOT NULL"
 	");";
 
-    char pragma_stmt[100];
-    snprintf(pragma_stmt, 100, "PRAGMA key = \'%s\';", pass);
+    char pragma_stmt[CRED_BUFF_LEN + 32];
+    snprintf(pragma_stmt, CRED_BUFF_LEN + 32, "PRAGMA key = \'%s\';", pass);
 
     sqlite3 *db_con = NULL;
     status = sqlite3_open(DB_FILE, &db_con);
