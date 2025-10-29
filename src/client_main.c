@@ -25,7 +25,11 @@ int main(int argc, char *argv[]) {
 	return -1;
     }
 
-    return handle_input(argc, argv, db_con);
+    int status=  handle_input(argc, argv, db_con);
+
+    sqlite3_close(db_con);
+
+    return status;
 }
 
 /*--- Dispatch function to handle adding new accounts-----*/
@@ -224,6 +228,7 @@ int list_accounts(char **argv, int argc, sqlite3 *db) {
 	printf("Pass:       %s\n", n->password);
 	printf("\n");
     }
+    destroyAccList(a_lst);
     return SUCCESS_OP;
 }
 

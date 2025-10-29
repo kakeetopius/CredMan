@@ -72,7 +72,6 @@ int decrypt_db(sqlite3 *db) {
 	if (errmsg) {
 	    sqlite3_free(errmsg);
 	}
-	sqlite3_close(db);
 	return SQLITE_RELATED_ERROR;
     }
 
@@ -90,7 +89,6 @@ int decrypt_db(sqlite3 *db) {
 	if (errmsg) {
 	    sqlite3_free(errmsg);
 	}
-	sqlite3_close(db);
 	return SQLITE_RELATED_ERROR;
     }
 
@@ -121,7 +119,6 @@ int change_db_master_password(sqlite3 *db) {
 	if (errmsg) {
 	    sqlite3_free(errmsg);
 	}
-	sqlite3_close(db);
 	return SQLITE_RELATED_ERROR;
     }
 
@@ -182,33 +179,37 @@ int add_account_to_db(sqlite3 *db, Account acc) {
     status = sqlite3_bind_text(pStmt, 1, acc->name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pStmt, 2, acc->username, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pStmt, 3, acc->password, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pStmt);
     if (status != SQLITE_DONE) {
 	printf("Error: %s", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
     int affected_rows = sqlite3_changes(db);
 
+    sqlite3_finalize(pStmt);
     if (affected_rows != 1) {
 	return NON_AFFECTED_ERROR;
     }
 
-    sqlite3_finalize(pStmt);
     return SUCCESS_OP;
 }
 
@@ -226,21 +227,23 @@ int delete_account_from_db(sqlite3 *db, char *acc_name) {
     status = sqlite3_bind_text(pstmt, 1, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pstmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pstmt);
     if (status != SQLITE_DONE) {
 	printf("Error: %s", sqlite3_errmsg(db));
+	sqlite3_finalize(pstmt);
 	return SQLITE_RELATED_ERROR;
     }
     int affected_rows = sqlite3_changes(db);
 
+    sqlite3_finalize(pstmt);
     if (affected_rows != 1) {
 	return NON_AFFECTED_ERROR;
     }
 
-    sqlite3_finalize(pstmt);
     return SUCCESS_OP;
 }
 
@@ -269,27 +272,30 @@ int update_db_field(sqlite3 *db, enum db_fields toUpdate, char *acc_name, char *
     status = sqlite3_bind_text(pStmt, 1, new_field_value, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pStmt, 2, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pStmt);
     if (status != SQLITE_DONE) {
 	printf("Error: %s", sqlite3_errmsg(db));
+	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
     int affected_rows = sqlite3_changes(db);
 
+    sqlite3_finalize(pStmt);
     if (affected_rows != 1) {
 	return NON_AFFECTED_ERROR;
     }
 
-    sqlite3_finalize(pStmt);
     return SUCCESS_OP;
 }
 
@@ -310,12 +316,14 @@ int get_account_by_name(sqlite3 *db, char *acc_name, struct account *acc) {
     status = sqlite3_bind_text(pstmt, 1, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pstmt);
 	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pstmt);
     if (status != SQLITE_ROW) {
 	printf("Account %s does not exist\n", acc_name);
+	sqlite3_finalize(pstmt);
 	return SQLITE_RELATED_ERROR;
     }
 
