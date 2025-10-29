@@ -174,7 +174,20 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
 	return -1;
     }
 
-    int status = delete_account_from_db(db, account);
+    int status;
+    char choice[5];
+    char confirmation[64];
+    sprintf(confirmation, "Are you sure you want to delete account %s (yes/no)?", account);
+
+    status = get_user_input(choice, 5, confirmation, 0, 0);
+    if (status != SUCCESS_OP) {
+	return -1;
+    }
+    if (strcmp(choice, "yes") != 0 ){
+	printf("Account not deleted\n");
+	return -1;
+    }
+    status = delete_account_from_db(db, account);
     if (status == SUCCESS_OP) {
 	printf("Account Deleted\n");
 	return SUCCESS_OP;

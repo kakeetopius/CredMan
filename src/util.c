@@ -29,6 +29,7 @@ int print_help(char* subcommand) {
     
     return 0;
 }
+
 int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, int secret) {
 
     struct termios oldt; // to store old terminal settings
