@@ -1,27 +1,11 @@
 #include "../includes/util.h"
 #include "../includes/db_access.h"
 #include "../includes/error_messages.h"
+#include "../includes/client_main.h"
 
 #include <stdio.h>
 #include <string.h>
 
-int main(void) {
-    Account_list a_lst = createAccList();
-    
-    int status = get_creds_from_batch_file(a_lst, "batch.txt");
-
-    if (status != SUCCESS_OP) {
-	destroyAccList(a_lst);
-	return -1;
-    }
-
-    int i = 1;
-    for (Acc_node tmp = a_lst->head; tmp != NULL; tmp = tmp->next) {
-	printf("Line %d Name: %s User: %s Pass: %s\n", i, tmp->name, tmp->username, tmp->password);
-	i++;
-    }
-    destroyAccList(a_lst);
-}
 int print_help(char *subcommand) {
     if (strcmp(subcommand, "add") == 0) {
 	printf("%s", ADD_MESSAGE);
@@ -272,6 +256,16 @@ int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *pa
 	password[password_len] = '\0';
     }
 
+
+    /*If password needs to be automatically generated*/
+    if (strcmp(password, "?") == 0) {
+	int status;
+	status = get_pass_string(password, CRED_BUFF_LEN);
+	if (status != SUCCESS_OP) {
+	    return GENERAL_ERROR;
+	}
+	password[PASSWORD_LENGTH] = '\0';
+    }
     user_name[user_name_len] = '\0';
     acc_name[acc_name_len] = '\0';
 

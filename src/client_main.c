@@ -10,28 +10,28 @@
 #include "../includes/error_messages.h"
 #include "../includes/util.h"
 
-// int main(int argc, char *argv[]) {
-//     if (argc < 2) {
-// 	printf("%s", GENERAL_MESSAGE);
-// 	return -1;
-//     } else if (strcmp(argv[1], "help") == 0) {
-// 	printf("%s", GENERAL_MESSAGE);
-// 	return 0;
-//     } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {
-// 	return print_help(argv[1]);
-//     }
-//
-//     sqlite3 *db_con = open_db_con();
-//     if (!db_con) {
-// 	return -1;
-//     }
-//
-//     int status=  handle_input(argc, argv, db_con);
-//
-//     sqlite3_close(db_con);
-//
-//     return status;
-// }
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+	printf("%s", GENERAL_MESSAGE);
+	return -1;
+    } else if (strcmp(argv[1], "help") == 0) {
+	printf("%s", GENERAL_MESSAGE);
+	return 0;
+    } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {
+	return print_help(argv[1]);
+    }
+
+    sqlite3 *db_con = open_db_con();
+    if (!db_con) {
+	return -1;
+    }
+
+    int status = handle_input(argc, argv, db_con);
+
+    sqlite3_close(db_con);
+
+    return status;
+}
 
 /*--- Dispatch function to handle adding new accounts-----*/
 int add_acc(char **argv, int argc, sqlite3 *db) {
@@ -41,6 +41,10 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
     }
 
     int status;
+    if (strcmp(argv[2], "--batch") == 0) {
+	status = add_acc_via_batch(db, argv[3]);
+	return status;
+    }
     char *account_name = argv[2];
 
     if (check_account_exists(db, account_name) == DB_ROW_EXISTS) {
@@ -62,6 +66,7 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
 	pass[PASSWORD_LENGTH] = '\0';
     } else {
 	printf("Unknown option: %s\n", argv[3]);
+	return -1;
     }
 
     status = get_user_input(user_name, CRED_BUFF_LEN, "Enter User Name", 0, 0);
@@ -82,6 +87,32 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
     return status;
 }
 
+int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
+    if(!batch_file_name) {
+	return GENERAL_ERROR;
+    }
+
+    Account_list a_list = createAccList();
+    int status;
+
+    status = get_creds_from_batch_file(a_list, batch_file_name);
+
+    for (Acc_node n = a_list->head; n != NULL; n = n->next) {
+	if (check_account_exists(db, n->name) == DB_ROW_EXISTS) {
+	    printf("Credentials For %s already exists\n", n->name);
+	    continue;
+	}
+
+	status = add_account_to_db(db, (Account)n);
+	if (status != SUCCESS_OP) {
+	    continue;
+	}
+    }
+
+    destroyAccList(a_list);
+    return SUCCESS_OP;
+}
+
 /*--- Dispatch function to handle changing account details-----*/
 int change_details(char **argv, int argc, sqlite3 *db) {
     if (argc < 3) {
@@ -95,7 +126,7 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 	    status = change_db_master_password(db);
 	    if (status != SUCCESS_OP)
 		return -1;
-	    else  {
+	    else {
 		printf("Master Password Changed Successfully\n");
 		return SUCCESS_OP;
 	    }
@@ -183,7 +214,7 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
     if (status != SUCCESS_OP) {
 	return -1;
     }
-    if (strcmp(choice, "yes") != 0 ){
+    if (strcmp(choice, "yes") != 0) {
 	printf("Account not deleted\n");
 	return -1;
     }
@@ -293,7 +324,7 @@ int get_pass_string(char *pass_buff, int buff_size) {
 		     "1234567890"
 		     "!@#$%&^*()";
     int charset_size = sizeof(charset) - 1; // minus to not consider null terminator.
-    
+
     if (!pass_buff) {
 	printf("Buff is NULL\n");
 	return -1;
@@ -314,7 +345,7 @@ int get_pass_string(char *pass_buff, int buff_size) {
     }
     return SUCCESS_OP;
 #else
-    FILE* urandom = fopen("/dev/urandom", "rb");
+    FILE *urandom = fopen("/dev/urandom", "rb");
     if (!urandom) {
 	perror("Error opening /dev/urandom");
 	return -1;
@@ -327,8 +358,8 @@ int get_pass_string(char *pass_buff, int buff_size) {
 	printf("Error reading from /dev/urandom\n");
 	fclose(urandom);
 	return -1;
-    } 
-    
+    }
+
     int pass_index;
     for (int i = 0; i < PASSWORD_LENGTH; i++) {
 	pass_index = random[i] % charset_size;
@@ -338,5 +369,4 @@ int get_pass_string(char *pass_buff, int buff_size) {
     fclose(urandom);
     return SUCCESS_OP;
 #endif
-    
 }

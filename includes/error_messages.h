@@ -11,7 +11,15 @@
 #define ADD_MESSAGE "Usage: "\
 		    "cman add <account_name> {auto|no-auto}\n\n"\
 		    "cman add <account_name> auto\t\tAutomatically generates password\n"\
-		    "cman add <account_name> no-auto\t\tPassword given by user\n"
+		    "cman add <account_name> no-auto\t\tPassword given by user\n\n" \
+		    "cman add --batch <filename>\t\tAdd multiple account details from a batch file <filename>\n\n"\
+		    "Rules for batch file:\n"\
+		    "1.Each line has details of a single account i.e account name, user name and passowrd"\
+			" separated by commas eg accName,uName,pass\n"\
+		    "2.Empty lines are ignored\n"\
+		    "3.Spaces within the line are treated as part of the respective field\n"\
+		    "4.If it is required that program generates the password, use ? as a placeholder for the password i.e. "\
+		    "aName,uName,?\n\n"
 
 #define CHANGE_MESSAGE  "Usage: cman change <account_name> <option>\n"\
 		        "Options to Change: \n"\
