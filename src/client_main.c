@@ -1,8 +1,9 @@
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
 #include <time.h>
+#endif
 
 #include "../includes/account.h"
 #include "../includes/client_main.h"
@@ -47,20 +48,23 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
 	return -1;
     }
 
-    char user_name[50];
-    char pass[50];
+    char user_name[CRED_BUFF_LEN];
+    char pass[CRED_BUFF_LEN];
 
     if (strcmp("no-auto", argv[3]) == 0) {
-	status = get_user_input(pass, 50, "Enter Password", 1, 1);
+	status = get_user_input(pass, CRED_BUFF_LEN, "Enter Password", 1, 1);
 	if (status != SUCCESS_OP)
 	    return -1;
     } else if (strcmp("auto", argv[3]) == 0) {
-	get_pass_string(pass, 16);
+	status = get_pass_string(pass, PASSWORD_LENGTH);
+	if (status != SUCCESS_OP)
+	    return -1;
+	pass[PASSWORD_LENGTH] = '\0';
     } else {
 	printf("Unknown option: %s\n", argv[3]);
     }
 
-    status = get_user_input(user_name, 50, "Enter User Name", 0, 0);
+    status = get_user_input(user_name, CRED_BUFF_LEN, "Enter User Name", 0, 0);
     if (status != SUCCESS_OP)
 	return -1;
 
@@ -103,7 +107,7 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 
     char *account = argv[2];
     char *option = argv[3];
-    char new_value[50];
+    char new_value[CRED_BUFF_LEN];
 
     if (check_account_exists(db, account) == DB_ROW_NX) {
 	printf("Account %s doesn't exist\n", account);
@@ -111,14 +115,14 @@ int change_details(char **argv, int argc, sqlite3 *db) {
     }
 
     if (strcmp(option, "user") == 0) {
-	status = get_user_input(new_value, 50, "Enter New User Name", 0, 0);
+	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New User Name", 0, 0);
 	if (status != SUCCESS_OP)
 	    return -1;
 	status = update_db_field(db, DB_USER_NAME, account, new_value);
 	if (status != SUCCESS_OP)
 	    return -1;
     } else if (strcmp(option, "name") == 0) {
-	status = get_user_input(new_value, 50, "Enter New Account Name", 0, 0);
+	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New Account Name", 0, 0);
 	if (status != SUCCESS_OP)
 	    return -1;
 	status = update_db_field(db, DB_ACC_NAME, account, new_value);
@@ -129,11 +133,14 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 	    printf("%s", CHANGE_MESSAGE);
 	    return -1;
 	}
-	char pass[50];
+	char pass[CRED_BUFF_LEN];
 	if (strcmp(argv[4], "auto") == 0) {
-	    get_pass_string(pass, 16);
+	    status = get_pass_string(pass, PASSWORD_LENGTH);
+	    if (status != SUCCESS_OP)
+		return -1;
+	    pass[PASSWORD_LENGTH] = '\0';
 	} else if (strcmp(argv[4], "no-auto") == 0) {
-	    status = get_user_input(pass, 50, "Enter New Password", 1, 1);
+	    status = get_user_input(pass, CRED_BUFF_LEN, "Enter New Password", 1, 1);
 	    if (status != SUCCESS_OP)
 		return -1;
 	} else {
@@ -267,47 +274,56 @@ int handle_input(int argc, char *argv[], sqlite3 *db) {
     return status;
 }
 
-void get_pass_string(char *buff, int buff_size) {
-    memset(buff, 0, buff_size);
-    srand(time(NULL));
-    int num;
-    int alpha = 0;
-    int numeric = 0;
-    int s_char = 0;
-
-    for (int i = 0; i < buff_size; i++) {
-	num = rand() % 88 + 35; // random number between 35 and 122
-	if ((num >= 37 && num <= 47) || (num >= 58 && num <= 63) ||
-	    (num >= 91 && num <= 96)) {
-	    i--;
-	    continue;
-	}
-
-	if (isalpha(num))
-	    alpha++;
-	else if (isdigit(num))
-	    numeric++;
-
-	if (alpha > 8) {
-	    num = rand() % 10 + 48; // choose a number
-	    numeric++;
-	    if (numeric > 5) {
-		s_char = rand() % 3;
-		switch (s_char) {
-		case 0:
-		    num = 35;
-		    break; // #
-		case 1:
-		    num = 36;
-		    break; //$
-		case 2:
-		    num = 64;
-		    break; //@
-		}
-	    }
-	}
-
-	buff[i] = num;
+int get_pass_string(char *pass_buff, int buff_size) {
+    char charset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		     "abcdefghijklmnopqrstuvwxyz"
+		     "1234567890"
+		     "!@#$%&^*()";
+    int charset_size = sizeof(charset) - 1; // minus to not consider null terminator.
+    
+    if (!pass_buff) {
+	printf("Buff is NULL\n");
+	return -1;
     }
-    buff[buff_size - 1] = '\0';
+
+    memset(pass_buff, 0, buff_size);
+
+#ifdef _WIN32
+    srand(time(NULL));
+    int random_bytes[PASSWORD_LENGTH];
+    srand(time(NULL));
+    for (int i = 0; i < PASSWORD_LENGTH; i++) {
+	random_bytes[i] = rand() % charset_size;
+    }
+
+    for (int i = 0; i < PASSWORD_LENGTH; i++) {
+	pass_buff[i] = charset[random_bytes[i]];
+    }
+    return SUCCESS_OP;
+#else
+    FILE* urandom = fopen("/dev/urandom", "rb");
+    if (!urandom) {
+	perror("Error opening /dev/urandom");
+	return -1;
+    }
+
+    unsigned char random[PASSWORD_LENGTH];
+    int read_numbers = fread(random, sizeof(char), PASSWORD_LENGTH, urandom);
+
+    if (read_numbers < PASSWORD_LENGTH) {
+	printf("Error reading from /dev/urandom\n");
+	fclose(urandom);
+	return -1;
+    } 
+    
+    int pass_index;
+    for (int i = 0; i < PASSWORD_LENGTH; i++) {
+	pass_index = random[i] % charset_size;
+	pass_buff[i] = charset[pass_index];
+    }
+
+    fclose(urandom);
+    return SUCCESS_OP;
+#endif
+    
 }

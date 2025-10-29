@@ -8,6 +8,10 @@
 #include <windows.h>
 #endif
 
+#define PASSWORD_LENGTH 16 
+#define CRED_BUFF_LEN 32 
+
+
 void flush_stdin();
 void remove_secure_input(struct termios *oldt);
 void set_secure_input(struct termios *oldt);

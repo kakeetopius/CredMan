@@ -54,9 +54,9 @@ sqlite3 *open_db_con() {
 
 int decrypt_db(sqlite3 *db) {
     int status;
-    char pass[64];
-    status = get_user_input(pass, 63, "Enter Master Password", 0, 1);
-    pass[63] = '\0';
+    char pass[CRED_BUFF_LEN];
+    status = get_user_input(pass, CRED_BUFF_LEN, "Enter Master Password", 0, 1);
+    pass[CRED_BUFF_LEN - 1] = '\0';
     if (status != 0) {
 	return GENERAL_ERROR;
     }
@@ -101,9 +101,9 @@ int decrypt_db(sqlite3 *db) {
 
 int change_db_master_password(sqlite3 *db) {
     int status;
-    char pass[64];
-    status = get_user_input(pass, 63, "Enter New Master Password. Make sure to remember it", 1, 1);
-    pass[63] = '\0';
+    char pass[CRED_BUFF_LEN];
+    status = get_user_input(pass, CRED_BUFF_LEN, "Enter New Master Password. Make sure to remember it", 1, 1);
+    pass[CRED_BUFF_LEN - 1] = '\0';
     if (status != 0) {
 	return GENERAL_ERROR;
     }
@@ -381,9 +381,9 @@ int get_all_credentials(sqlite3 *db, struct account_list *acc_list) {
 
 int create_new_database() {
     int status;
-    char pass[64];
-    status = get_user_input(pass, 63, "Enter Master Password to be used for encryption. Make sure to remember it", 1, 1);
-    pass[63] = '\0';
+    char pass[CRED_BUFF_LEN];
+    status = get_user_input(pass, CRED_BUFF_LEN, "Enter Master Password to be used for encryption. Make sure to remember it", 1, 1);
+    pass[CRED_BUFF_LEN - 1] = '\0';
 
     if (status != 0) {
 	return GENERAL_ERROR;

@@ -2,6 +2,7 @@
 #define MAIN_H
 
 
+
 #include <stdio.h>
 #include "../includes/db_access.h"
 
@@ -24,7 +25,7 @@ struct credential {
 
 /*----------------Function declarations----------*/
 int handle_input(int argc, char* argv[], sqlite3* db);
-void get_pass_string(char* buff, int buff_size);
+int get_pass_string(char* buff, int buff_size);
 int change_details(char **argv, int argc, sqlite3* db); 
 int delete_account(char** argv, int argc, sqlite3* db);
 int get_details(char** argv, int argc, sqlite3* db);

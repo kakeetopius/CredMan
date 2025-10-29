@@ -40,21 +40,25 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
     printf("%s: ", prompt);
     fgets(temp_buff, sizeof(temp_buff), stdin);
     printf("\n");
+    int temp_buff_strlen;
 
     // if some text remained in stdin
     if (strchr(temp_buff, '\n') == NULL) {
-	printf("Limit input to 64 characters\n");
+	printf("Limit input to %d characters\n", buff_len);
 	flush_stdin();
-	remove_secure_input(&oldt);
+	if (secret == 1)
+	    remove_secure_input(&oldt);
 	return GENERAL_ERROR;
     } else {
 	/*removing new line character*/
 	int new_line_pos = strcspn(temp_buff, "\n");
 	temp_buff[new_line_pos] = '\0';
+	temp_buff_strlen = strlen(temp_buff);
 
-	if (strlen(temp_buff) == 0) {
+	if (temp_buff_strlen == 0) {
 	    printf("Input can't be Empty\n");
-	    remove_secure_input(&oldt);
+	    if (secret == 1)
+		remove_secure_input(&oldt);
 	    return GENERAL_ERROR;
 	}
 
@@ -67,22 +71,29 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
 	    if (strchr(temp_buff2, '\n') == NULL) {
 		flush_stdin();
 		printf("Inputs don't match\n");
-		remove_secure_input(&oldt);
+		if (secret == 1)
+		    remove_secure_input(&oldt);
 		return GENERAL_ERROR;
 	    } else {
 		temp_buff2[strcspn(temp_buff2, "\n")] = '\0';
 		if (strcmp(temp_buff, temp_buff2) != 0) {
 		    printf("Inputs don't match\n");
-		    remove_secure_input(&oldt);
+		    if (secret == 1)
+			remove_secure_input(&oldt);
 		    return GENERAL_ERROR;
 		}
 	    }
 	}
     }
 
-    snprintf(buff, buff_len, "%s", temp_buff);
     if (secret == 1)
 	remove_secure_input(&oldt);
+
+    if (buff_len < temp_buff_strlen) {
+	printf("Limit input to %d characters\n", buff_len);
+	return GENERAL_ERROR;
+    }
+    snprintf(buff, buff_len, "%s", temp_buff);
 
     return SUCCESS_OP;
 }
