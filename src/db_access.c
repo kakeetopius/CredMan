@@ -3,6 +3,7 @@
 
 #include "../includes/db_access.h"
 #include "../includes/error_messages.h"
+#include "../includes/util.h"
 
 sqlite3 *open_db_con() {
     /*Test connection to test if database exists*/
@@ -29,6 +30,7 @@ sqlite3 *open_db_con() {
 	    status = create_new_database();
 	    return NULL;
 	}
+	// return NULL to tell main to stop execution.
 	return NULL;
     }
 
@@ -37,17 +39,180 @@ sqlite3 *open_db_con() {
 
     sqlite3 *db_con = NULL;
     status = sqlite3_open(DB_FILE, &db_con);
-    if (status != SQLITE_OK)
+    if (status != SQLITE_OK) {
 	printf("Error opening database\n");
-
-    status = delete_account_from_db(db_con, "test8"); 
-    if (status != 0)
 	return NULL;
-    printf("Successfull!!\n");
+    }
+    //decrypting the database before returning handle.
+    status = decrypt_db(db_con);
+    if (status != SQLITE_OK) {
+	return NULL;
+    }
+
     return db_con;
 }
 
-int delete_account_from_db(sqlite3* db, char* acc_name) {
+int decrypt_db(sqlite3 *db) {
+    int status;
+    char pass[64];
+    status = get_user_input(pass, 63, "Enter Master Password", 0, 1);
+    pass[63] = '\0';
+    if (status != 0) {
+	return GENERAL_ERROR;
+    }
+
+    char pragma_stmt[100];
+    snprintf(pragma_stmt, 100, "PRAGMA key = \'%s\';", pass);
+
+    char *errmsg = NULL;
+
+    status = sqlite3_exec(db, pragma_stmt, NULL, NULL, &errmsg);
+    if (status != SQLITE_OK) {
+	printf("Error executing query: %s\n", errmsg == NULL ? "" : errmsg);
+	if (errmsg) {
+	    sqlite3_free(errmsg);
+	}
+	sqlite3_close(db);
+	return SQLITE_RELATED_ERROR;
+    }
+
+    // verifying if password given was correct.
+    const char *query = "SELECT COUNT(*) FROM sqlite_master";
+    status = sqlite3_exec(db, query, NULL, NULL, &errmsg);
+
+    if (status == SQLITE_NOTADB) {
+	printf("Could not decrypt Database\n");
+	printf("Check the master password and try again\n");
+	return SQLITE_RELATED_ERROR;
+    }
+    else if (status != SQLITE_OK) {
+	printf("Error executing query: %s\n", errmsg == NULL ? "" : errmsg);
+	if (errmsg) {
+	    sqlite3_free(errmsg);
+	}
+	sqlite3_close(db);
+	return SQLITE_RELATED_ERROR;
+    }
+
+    if (errmsg) {
+	sqlite3_free(errmsg);
+    }
+
+    return SUCCESS_OP;
+}
+
+int change_db_master_password(sqlite3 *db) {
+    int status;
+    char pass[64];
+    status = get_user_input(pass, 63, "Enter New Master Password. Make sure to remember it", 1, 1);
+    pass[63] = '\0';
+    if (status != 0) {
+	return GENERAL_ERROR;
+    }
+
+    char pragma_stmt[100];
+    snprintf(pragma_stmt, 100, "PRAGMA rekey = \'%s\';", pass);
+
+    char *errmsg = NULL;
+
+    status = sqlite3_exec(db, pragma_stmt, NULL, NULL, &errmsg);
+    if (status != SQLITE_OK) {
+	printf("Error executing query: %s\n", errmsg == NULL ? "" : errmsg);
+	if (errmsg) {
+	    sqlite3_free(errmsg);
+	}
+	sqlite3_close(db);
+	return SQLITE_RELATED_ERROR;
+    }
+
+    if (errmsg) {
+	sqlite3_free(errmsg);
+    }
+
+    return SUCCESS_OP;
+}
+
+int check_account_exists(sqlite3* db, char* acc_name) {
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT EXISTS(SELECT 1 FROM account WHERE acc_name = ?);";
+    int status;
+
+    status = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    sqlite3_bind_text(stmt, 1, acc_name, -1, SQLITE_TRANSIENT);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    int exists = 0;
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+	exists = sqlite3_column_int(stmt, 0);  
+    }
+
+    return exists == 1 ? DB_ROW_EXISTS : DB_ROW_NX;
+
+    sqlite3_finalize(stmt);
+}
+
+int add_account_to_db(sqlite3 *db, Account acc) {
+    if (!db) {
+	printf("Database handle is NULL\n");
+	return GENERAL_ERROR;
+    }
+    if (!acc) {
+	printf("Account object is NULL\n");
+	return GENERAL_ERROR;
+    }
+
+    int status;
+    sqlite3_stmt *pStmt = NULL;
+    char *query = "INSERT INTO account(acc_name, user_name, password) VALUES (?, ?, ?);";
+
+    status = sqlite3_prepare_v2(db, query, -1, &pStmt, NULL);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    status = sqlite3_bind_text(pStmt, 1, acc->name, -1, SQLITE_TRANSIENT);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    status = sqlite3_bind_text(pStmt, 2, acc->username, -1, SQLITE_TRANSIENT);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    status = sqlite3_bind_text(pStmt, 3, acc->password, -1, SQLITE_TRANSIENT);
+    if (status != SQLITE_OK) {
+	printf("Error: %s\n", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+
+    status = sqlite3_step(pStmt);
+    if (status != SQLITE_DONE) {
+	printf("Error: %s", sqlite3_errmsg(db));
+	return SQLITE_RELATED_ERROR;
+    }
+    int affected_rows = sqlite3_changes(db);
+
+    if (affected_rows != 1) {
+	return NON_AFFECTED_ERROR;
+    }
+
+    sqlite3_finalize(pStmt);
+    return SUCCESS_OP;
+}
+
+int delete_account_from_db(sqlite3 *db, char *acc_name) {
     int status;
     sqlite3_stmt *pstmt = NULL;
     char *query = "DELETE FROM account WHERE acc_name = ?;";
@@ -55,157 +220,165 @@ int delete_account_from_db(sqlite3* db, char* acc_name) {
     status = sqlite3_prepare_v2(db, query, -1, &pstmt, NULL);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pstmt, 1, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pstmt);
     if (status != SQLITE_DONE) {
 	printf("Error: %s", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
     int affected_rows = sqlite3_changes(db);
-    
-    if(affected_rows != 1) {
-	return -1;
+
+    if (affected_rows != 1) {
+	return NON_AFFECTED_ERROR;
     }
 
     sqlite3_finalize(pstmt);
-    return 0;
+    return SUCCESS_OP;
 }
 
 int update_db_field(sqlite3 *db, enum db_fields toUpdate, char *acc_name, char *new_field_value) {
-    char* query;
-    sqlite3_stmt* pStmt;
+    char *query;
+    sqlite3_stmt *pStmt;
     int status;
-    switch(toUpdate) {
-	case DB_ACC_NAME:
-	    query = "UPDATE account SET acc_name = ? WHERE acc_name = ?;";
-	    break;
-	case DB_USER_NAME:
-	   query = "UPDATE account SET user_name = ? WHERE acc_name = ?;"; 
-	    break;
-	case DB_ACC_PASSWORD:
-	    query = "UPDATE account SET password = ? WHERE acc_name = ?;";
-	    break;
+    switch (toUpdate) {
+    case DB_ACC_NAME:
+	query = "UPDATE account SET acc_name = ? WHERE acc_name = ?;";
+	break;
+    case DB_USER_NAME:
+	query = "UPDATE account SET user_name = ? WHERE acc_name = ?;";
+	break;
+    case DB_ACC_PASSWORD:
+	query = "UPDATE account SET password = ? WHERE acc_name = ?;";
+	break;
     }
-    
+
     status = sqlite3_prepare_v2(db, query, -1, &pStmt, NULL);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pStmt, 1, new_field_value, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
-    status = sqlite3_bind_text(pStmt, 2, acc_name , -1, SQLITE_TRANSIENT);
+    status = sqlite3_bind_text(pStmt, 2, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pStmt);
     if (status != SQLITE_DONE) {
 	printf("Error: %s", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
     int affected_rows = sqlite3_changes(db);
-    
-    if(affected_rows != 1) {
-	return -1;
+
+    if (affected_rows != 1) {
+	return NON_AFFECTED_ERROR;
     }
 
     sqlite3_finalize(pStmt);
-    return 0;
+    return SUCCESS_OP;
 }
 
 int get_account_by_name(sqlite3 *db, char *acc_name, struct account *acc) {
     if (!acc) {
-	return -1;
+	return GENERAL_ERROR;
     }
     int status;
     sqlite3_stmt *pstmt = NULL;
-    char *query = "SELECT * FROM account WHERE acc_name = ?;";
+    char *query = "SELECT acc_name, user_name, password FROM account WHERE acc_name = ?;";
 
     status = sqlite3_prepare_v2(db, query, -1, &pstmt, NULL);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_bind_text(pstmt, 1, acc_name, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_step(pstmt);
     if (status != SQLITE_ROW) {
 	printf("Account %s does not exist\n", acc_name);
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
-    acc->name = (char *)sqlite3_column_text(pstmt, 0);
-    acc->username = (char *)sqlite3_column_text(pstmt, 1);
-    acc->password = (char *)sqlite3_column_text(pstmt, 2);
+
+    const unsigned char* a_name = sqlite3_column_text(pstmt, 0);
+    const unsigned char* username = sqlite3_column_text(pstmt, 1);
+    const unsigned char* pass = sqlite3_column_text(pstmt, 2);
+
+    acc->name = strdup((char*)a_name);
+    acc->username = strdup((char*)username);
+    acc->password = strdup((char*)pass);
 
     sqlite3_finalize(pstmt);
-    return 0;
+    return SUCCESS_OP;
 }
 
 int get_all_credentials(sqlite3 *db, struct account_list *acc_list) {
     if (!db) {
-	return -1;
+	return GENERAL_ERROR;
     }
     if (!acc_list) {
-	return -1;
+	return GENERAL_ERROR;
     }
 
-    const char *query = "SELECT * FROM account;";
+    const char *query = "SELECT acc_name, user_name, password FROM account;";
     sqlite3_stmt *pre_stmt = NULL;
     int status = 0;
 
     status = sqlite3_prepare_v2(db, query, -1, &pre_stmt, NULL);
     if (status != SQLITE_OK) {
 	printf("Error: %s", sqlite3_errmsg(db));
-	return -1;
+	return SQLITE_RELATED_ERROR;
     }
 
     while ((status = sqlite3_step(pre_stmt)) == SQLITE_ROW) {
-	unsigned const char *acc_name = sqlite3_column_text(pre_stmt, 1);
-	unsigned const char *user_name = sqlite3_column_text(pre_stmt, 2);
-	unsigned const char *pass = sqlite3_column_text(pre_stmt, 3);
+	unsigned const char *acc_name = sqlite3_column_text(pre_stmt, 0);
+	unsigned const char *user_name = sqlite3_column_text(pre_stmt, 1);
+	unsigned const char *pass = sqlite3_column_text(pre_stmt, 2);
 	int insert_status = insert_acc(acc_list, (char *)acc_name, (char *)pass, (char *)user_name);
 	if (insert_status != 0) {
-	    return insert_status;
+	    sqlite3_finalize(pre_stmt);
+	    return GENERAL_ERROR;
 	}
     }
 
     if (status != SQLITE_DONE) {
 	printf("An error occured: %s\n", sqlite3_errmsg(db));
+	sqlite3_finalize(pre_stmt);
+	return SQLITE_RELATED_ERROR;
     }
 
     sqlite3_finalize(pre_stmt);
 
-    return 0;
+    return SUCCESS_OP;
 }
 
 int create_new_database() {
     int status;
     char pass[64];
-    status = get_password(pass, 63, "Enter Master Password to be used for encryption. Make sure to remember it", 1);
+    status = get_user_input(pass, 63, "Enter Master Password to be used for encryption. Make sure to remember it", 1, 1);
     pass[63] = '\0';
 
     if (status != 0) {
-	return status;
+	return GENERAL_ERROR;
     }
 
     const char *create_query =
@@ -223,7 +396,7 @@ int create_new_database() {
     status = sqlite3_open(DB_FILE, &db_con);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db_con));
-	return status;
+	return SQLITE_RELATED_ERROR;
     }
 
     char *errmsg = NULL;
@@ -235,7 +408,7 @@ int create_new_database() {
 	    sqlite3_free(errmsg);
 	}
 	sqlite3_close(db_con);
-	return status;
+	return SQLITE_RELATED_ERROR;
     }
 
     status = sqlite3_exec(db_con, create_query, NULL, NULL, &errmsg);
@@ -245,7 +418,7 @@ int create_new_database() {
 	    sqlite3_free(errmsg);
 	}
 	sqlite3_close(db_con);
-	return status;
+	return SQLITE_RELATED_ERROR;
     }
 
     if (errmsg)
@@ -255,109 +428,6 @@ int create_new_database() {
     printf("To add credentials \n%s\n", ADD_MESSAGE);
     printf("Use cman help for more information\n");
 
-    return 0;
+    return SUCCESS_OP;
 }
 
-/*Function to get master password from user which is also essential for
- * encryption*/
-int get_password(char *buff, int buff_len, const char *prompt, int confirm) {
-
-    struct termios oldt; // to store old terminal settings
-    // Remove echo when typing input.
-    set_secure_input(&oldt);
-
-    char temp_buff[64];
-    printf("%s: ", prompt);
-    fgets(temp_buff, sizeof(temp_buff), stdin);
-    printf("\n");
-
-    // if some text remained in stdin
-    if (strchr(temp_buff, '\n') == NULL) {
-	printf("Limit Password to 64 characters\n");
-	flush_stdin();
-	remove_secure_input(&oldt);
-	return -1;
-    } else {
-	/*removing new line character*/
-	int new_line_pos = strcspn(temp_buff, "\n");
-	temp_buff[new_line_pos] = '\0';
-
-	if (strlen(temp_buff) == 0) {
-	    printf("Master Password Can't be Empty\n");
-	    remove_secure_input(&oldt);
-	    return -1;
-	}
-
-	if (confirm == 1) {
-	    printf("Enter Password again to confirm: ");
-	    char temp_buff2[64];
-	    fgets(temp_buff2, sizeof(temp_buff2), stdin);
-	    printf("\n");
-	    // if input is too long again
-	    if (strchr(temp_buff2, '\n') == NULL) {
-		flush_stdin();
-		printf("Passwords don't match\n");
-		remove_secure_input(&oldt);
-		return -1;
-	    } else {
-		temp_buff2[strcspn(temp_buff2, "\n")] = '\0';
-		if (strcmp(temp_buff, temp_buff2) != 0) {
-		    printf("Passwords don't match\n");
-		    remove_secure_input(&oldt);
-		    return -1;
-		}
-		snprintf(buff, buff_len, "%s", temp_buff);
-	    }
-	}
-    }
-
-    printf("\n");
-    remove_secure_input(&oldt);
-    return 0;
-}
-
-void set_secure_input(struct termios *oldt) {
-#ifdef _WIN32
-    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    DWORD mode;
-
-    // Get current console mode
-    GetConsoleMode(hStdin, &mode);
-
-    // Disable echo input
-    DWORD newMode = mode & ~ENABLE_ECHO_INPUT;
-    SetConsoleMode(hStdin, newMode);
-#else
-
-    // Get current terminal settings
-    if (tcgetattr(STDIN_FILENO, oldt) != 0) {
-	perror("tcgetattr");
-    }
-
-    struct termios newt;
-    // Make a copy and modify it: turn off echo
-    newt = *oldt;
-    newt.c_lflag &= ~ECHO;
-
-    // Apply the new settings
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &newt) != 0) {
-	perror("tcsetattr");
-    }
-#endif
-}
-
-void remove_secure_input(struct termios *oldt) {
-#ifdef _WIN32
-    // Restore original console mode
-    SetConsoleMode(hStdin, mode);
-#else
-    // Restore original terminal settings
-    tcsetattr(STDIN_FILENO, TCSANOW, oldt);
-#endif
-}
-
-void flush_stdin() {
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF)
-	;
-}

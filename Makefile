@@ -10,7 +10,7 @@ CLIENT_LIBS = -lsqlcipher
 SERVER_LIBS = 
 
 #----------------Source Files----------------------------
-CLIENT_SRCS = src/client_main.c src/account.c src/db_access.c
+CLIENT_SRCS = src/client_main.c src/account.c src/db_access.c src/util.c
 SERVER_SRCS = 
 
 

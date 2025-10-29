@@ -3,9 +3,10 @@
 
 
 #include <stdio.h>
+#include "../includes/db_access.h"
 
 /*------Function pointer to use for dispatch table----*/
-typedef int (*Handler)(char **, int);
+typedef int (*Handler)(char **, int, sqlite3*);
 
 /*-------------Sub Command Structure--------------------*/
 struct sub_command {
@@ -22,11 +23,11 @@ struct credential {
 };
 
 /*----------------Function declarations----------*/
-int handle_input(int argc, char* argv[], char* pass);
+int handle_input(int argc, char* argv[], sqlite3* db);
 void get_pass_string(char* buff, int buff_size);
-int change_details(char **argv, int argc); 
-int delete_account(char** argv, int argc);
-int get_details(char** argv, int argc);
-int list_accounts(char** argv, int argc);
-int add_acc(char **argv, int argc);
+int change_details(char **argv, int argc, sqlite3* db); 
+int delete_account(char** argv, int argc, sqlite3* db);
+int get_details(char** argv, int argc, sqlite3* db);
+int list_accounts(char** argv, int argc, sqlite3* db);
+int add_acc(char **argv, int argc, sqlite3* db);
 #endif
