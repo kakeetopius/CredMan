@@ -94,21 +94,33 @@ int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
 
     Account_list a_list = createAccList();
     int status;
+    int any_erros = 0;
 
     status = get_creds_from_batch_file(a_list, batch_file_name);
+    if (status != SUCCESS_OP) {
+	return status;
+    }
 
     for (Acc_node n = a_list->head; n != NULL; n = n->next) {
 	if (check_account_exists(db, n->name) == DB_ROW_EXISTS) {
 	    printf("Credentials For %s already exists\n", n->name);
+	    any_erros = 1;
 	    continue;
 	}
 
 	status = add_account_to_db(db, (Account)n);
 	if (status != SUCCESS_OP) {
+	    any_erros = 1;
 	    continue;
 	}
     }
 
+    if (any_erros == 0) {
+	printf("Succes..Use cman ls to confirm\n");
+    }
+    else if (any_erros == 1) {
+	printf("Got one or more errors from batch file. Use cman ls to see which were added successfully\n");
+    }
     destroyAccList(a_list);
     return SUCCESS_OP;
 }

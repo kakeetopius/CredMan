@@ -5,9 +5,10 @@
 
 #include "../includes/account.h"
 
-#define DB_FILE "util/creds.db"
-#define DB_BACKUP "util/creds_backup.db"
-
+#ifndef _WIN32
+#define DB_FILE "/home/pius/.creds.db"
+#define DB_BACKUP "/home/pius/.creds_backup.db"
+#endif
 
 #define SUCCESS_OP 0
 #define GENERAL_ERROR 10
