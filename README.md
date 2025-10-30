@@ -9,6 +9,7 @@ It’s designed to provide a simple and minimal credential management layer for 
 
 ## 🚀 Features
 - Securely store and retrieve credentials
+- Cryptographically secure random password generator.
 - Simple command-line interface (CLI)
 - Encrypted local storage
 - Cross-platform C implementation
@@ -27,4 +28,4 @@ cd CredMan
 make cman
 
 # Run
-./cman help
+./cman help 
