@@ -1,3 +1,11 @@
+/*
+*client_main.c is the entry point for the application.
+*It contains all the logic necessary to deal with 
+*user input and launching the necessary handler depending
+*on what is required by user (adding, changing, searching
+*deleting and listing of account credentials).
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +21,7 @@
 int main(int argc, char *argv[]) {
     if (argc < 2) {
 	printf("%s", GENERAL_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     } else if (strcmp(argv[1], "help") == 0) {
 	printf("%s", GENERAL_MESSAGE);
 	return 0;
@@ -23,7 +31,7 @@ int main(int argc, char *argv[]) {
 
     sqlite3 *db_con = open_db_con();
     if (!db_con) {
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int status = handle_input(argc, argv, db_con);
@@ -37,7 +45,7 @@ int main(int argc, char *argv[]) {
 int add_acc(char **argv, int argc, sqlite3 *db) {
     if (argc != 4) {
 	printf("%s", ADD_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int status;
@@ -49,7 +57,7 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
 
     if (check_account_exists(db, account_name) == DB_ROW_EXISTS) {
 	printf("Credentials For %s already exists\n", account_name);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     char user_name[CRED_BUFF_LEN];
@@ -58,20 +66,20 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
     if (strcmp("no-auto", argv[3]) == 0) {
 	status = get_user_input(pass, CRED_BUFF_LEN, "Enter Password", 1, 1);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
     } else if (strcmp("auto", argv[3]) == 0) {
 	status = get_pass_string(pass, PASSWORD_LENGTH);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
 	pass[PASSWORD_LENGTH] = '\0';
     } else {
 	printf("Unknown option: %s\n", argv[3]);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     status = get_user_input(user_name, CRED_BUFF_LEN, "Enter User Name", 0, 0);
     if (status != SUCCESS_OP)
-	return -1;
+	return GENERAL_ERROR;
 
     struct account acc;
     acc.name = account_name;
@@ -88,7 +96,7 @@ int add_acc(char **argv, int argc, sqlite3 *db) {
 }
 
 int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
-    if(!batch_file_name) {
+    if (!batch_file_name) {
 	return GENERAL_ERROR;
     }
 
@@ -98,6 +106,7 @@ int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
 
     status = get_creds_from_batch_file(a_list, batch_file_name);
     if (status != SUCCESS_OP) {
+	destroyAccList(a_list);
 	return status;
     }
 
@@ -117,8 +126,7 @@ int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
 
     if (any_erros == 0) {
 	printf("Succes..Use cman ls to confirm\n");
-    }
-    else if (any_erros == 1) {
+    } else if (any_erros == 1) {
 	printf("Got one or more errors from batch file. Use cman ls to see which were added successfully\n");
     }
     destroyAccList(a_list);
@@ -129,7 +137,7 @@ int add_acc_via_batch(sqlite3 *db, char *batch_file_name) {
 int change_details(char **argv, int argc, sqlite3 *db) {
     if (argc < 3) {
 	printf("%s", CHANGE_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int status;
@@ -137,14 +145,14 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 	if ((strcmp(argv[2], "master") == 0)) {
 	    status = change_db_master_password(db);
 	    if (status != SUCCESS_OP)
-		return -1;
+		return GENERAL_ERROR;
 	    else {
 		printf("Master Password Changed Successfully\n");
 		return SUCCESS_OP;
 	    }
 	} else {
 	    printf("%s", CHANGE_MESSAGE);
-	    return -1;
+	    return GENERAL_ERROR;
 	}
     }
 
@@ -154,49 +162,49 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 
     if (check_account_exists(db, account) == DB_ROW_NX) {
 	printf("Account %s doesn't exist\n", account);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     if (strcmp(option, "user") == 0) {
 	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New User Name", 0, 0);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
 	status = update_db_field(db, DB_USER_NAME, account, new_value);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
     } else if (strcmp(option, "name") == 0) {
 	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New Account Name", 0, 0);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
 	status = update_db_field(db, DB_ACC_NAME, account, new_value);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
     } else if (strcmp(option, "pass") == 0) {
 	if (argc != 5) {
 	    printf("%s", CHANGE_MESSAGE);
-	    return -1;
+	    return GENERAL_ERROR;
 	}
 	char pass[CRED_BUFF_LEN];
 	if (strcmp(argv[4], "auto") == 0) {
 	    status = get_pass_string(pass, PASSWORD_LENGTH);
 	    if (status != SUCCESS_OP)
-		return -1;
+		return GENERAL_ERROR;
 	    pass[PASSWORD_LENGTH] = '\0';
 	} else if (strcmp(argv[4], "no-auto") == 0) {
 	    status = get_user_input(pass, CRED_BUFF_LEN, "Enter New Password", 1, 1);
 	    if (status != SUCCESS_OP)
-		return -1;
+		return GENERAL_ERROR;
 	} else {
 	    printf("Unknown option: %s\n", argv[4]);
-	    return -1;
+	    return GENERAL_ERROR;
 	}
 	status = update_db_field(db, DB_ACC_PASSWORD, account, pass);
 	if (status != SUCCESS_OP)
-	    return -1;
+	    return GENERAL_ERROR;
     } else {
 	printf("Unknown option: %s\n", option);
 	printf("%s", CHANGE_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     if (status == SUCCESS_OP)
@@ -208,13 +216,13 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 int delete_account(char **argv, int argc, sqlite3 *db) {
     if (argc != 3) {
 	printf("%s", DELETE_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     char *account = argv[2];
     if (check_account_exists(db, account) == DB_ROW_NX) {
 	printf("Account %s doesn't exist\n", account);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int status;
@@ -224,11 +232,11 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
 
     status = get_user_input(choice, 5, confirmation, 0, 0);
     if (status != SUCCESS_OP) {
-	return -1;
+	return GENERAL_ERROR;
     }
     if (strcmp(choice, "yes") != 0) {
 	printf("Account not deleted\n");
-	return -1;
+	return GENERAL_ERROR;
     }
     status = delete_account_from_db(db, account);
     if (status == SUCCESS_OP) {
@@ -236,7 +244,7 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
 	return SUCCESS_OP;
     } else {
 	printf("Error Deleting Account\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 }
 
@@ -244,13 +252,13 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
 int get_details(char **argv, int argc, sqlite3 *db) {
     if (argc != 3) {
 	printf("%s", SEARCH_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     char *account = argv[2];
     if (check_account_exists(db, account) == DB_ROW_NX) {
 	printf("Account Doesn't Exist\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     struct account acc;
@@ -258,7 +266,7 @@ int get_details(char **argv, int argc, sqlite3 *db) {
 
     int status = get_account_by_name(db, account, &acc);
     if (status != SUCCESS_OP) {
-	return -1;
+	return GENERAL_ERROR;
     }
     printf("\n");
     printf("Account Name: %s\n", acc.name);
@@ -275,14 +283,14 @@ int get_details(char **argv, int argc, sqlite3 *db) {
 int list_accounts(char **argv, int argc, sqlite3 *db) {
     if (argc != 2) {
 	printf("%s", LS_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Account_list a_lst = createAccList();
 
     int status = get_all_credentials(db, a_lst);
     if (status != SUCCESS_OP) {
-	return -1;
+	return GENERAL_ERROR;
     }
 
     for (Acc_node n = a_lst->head; n != NULL; n = n->next) {
@@ -298,7 +306,7 @@ int list_accounts(char **argv, int argc, sqlite3 *db) {
 int handle_input(int argc, char *argv[], sqlite3 *db) {
     if (argc < 2 || argc > 5) {
 	printf("%s", GENERAL_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int status = 0;
@@ -320,7 +328,7 @@ int handle_input(int argc, char *argv[], sqlite3 *db) {
 	if (dispatch[i].name == NULL) { /*If the end of the dispatch array is reached and no matches*/
 	    printf("Unknown Command: %s\n", command);
 	    printf("%s", GENERAL_MESSAGE);
-	    return -1;
+	    return GENERAL_ERROR;
 	} else if (strcmp(command, dispatch[i].name) == 0) {
 	    status = dispatch[i].command_handler(argv, argc, db);
 	    break;
@@ -339,7 +347,7 @@ int get_pass_string(char *pass_buff, int buff_size) {
 
     if (!pass_buff) {
 	printf("Buff is NULL\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     memset(pass_buff, 0, buff_size);
@@ -360,7 +368,7 @@ int get_pass_string(char *pass_buff, int buff_size) {
     FILE *urandom = fopen("/dev/urandom", "rb");
     if (!urandom) {
 	perror("Error opening /dev/urandom");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     unsigned char random[PASSWORD_LENGTH];
@@ -369,7 +377,7 @@ int get_pass_string(char *pass_buff, int buff_size) {
     if (read_numbers < PASSWORD_LENGTH) {
 	printf("Error reading from /dev/urandom\n");
 	fclose(urandom);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     int pass_index;

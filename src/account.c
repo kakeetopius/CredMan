@@ -1,8 +1,15 @@
+/*
+* This source file contains all the implementations of handling 
+* Account objects which are objects that hold the details about
+* the different accounts during the running of the program
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../includes/account.h"
+#include "../includes/util.h"
 
 Account_list createAccList() {
     Account_list lst = (Account_list)malloc(sizeof(struct account_list));
@@ -18,13 +25,13 @@ Account_list createAccList() {
 int insert_acc(Account_list lst, char *name, char *pass, char *uname) {
     if (lst == NULL) {
 	printf("Uninitialized account list\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node n = (Acc_node)malloc(sizeof(struct acc_node));
     if (n == NULL) {
 	printf("Error allocating memory\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     if (!name)
@@ -35,7 +42,7 @@ int insert_acc(Account_list lst, char *name, char *pass, char *uname) {
 	printf("Username is Null\n");
 
     if (!name || !pass || !uname) {
-	return -1;
+	return GENERAL_ERROR;
     }
     n->name = strdup(name);
     n->password = strdup(pass);
@@ -52,12 +59,12 @@ int insert_acc(Account_list lst, char *name, char *pass, char *uname) {
 	lst->tail = n;
     }
 
-    return 0;
+    return SUCCESS_OP;
 }
 
 int delete_acc(Account_list lst, char *name) {
     if (lst == NULL || lst->head == NULL) {
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node iter = NULL;
@@ -78,34 +85,34 @@ int delete_acc(Account_list lst, char *name) {
 	    free(iter->password);
 	    free(iter->username);
 	    free(iter);
-	    return 0;
+	    return SUCCESS_OP;
 	}
     }
 
-    return -1;
+    return GENERAL_ERROR;
 }
 
 int search_acc(Account_list lst, char *name) {
     if (lst == NULL) {
 	printf("Uninitialized account list\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node iter = NULL;
 
     for (iter = lst->head; iter != NULL; iter = iter->next) {
 	if (strcmp(name, iter->name) == 0) {
-	    return 0;
+	    return SUCCESS_OP;
 	}
     }
 
-    return -1;
+    return GENERAL_ERROR;
 }
 
 int change_passwd(Account_list lst, char *acc_name, char *new_pass) {
     if (lst == NULL) {
 	printf("Uninitialized account list\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node iter = NULL;
@@ -114,17 +121,17 @@ int change_passwd(Account_list lst, char *acc_name, char *new_pass) {
 	if (strcmp(acc_name, iter->name) == 0) {
 	    free(iter->password);
 	    iter->password = strdup(new_pass);
-	    return 0;
+	    return SUCCESS_OP;
 	}
     }
 
-    return -1;
+    return GENERAL_ERROR;
 }
 
 int change_acc_name(Account_list lst, char *old_name, char *new_name) {
     if (lst == NULL) {
 	printf("Uninitialized account list\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node iter = NULL;
@@ -133,17 +140,17 @@ int change_acc_name(Account_list lst, char *old_name, char *new_name) {
 	if (strcmp(old_name, iter->name) == 0) {
 	    free(iter->name);
 	    iter->name = strdup(new_name);
-	    return 0;
+	    return SUCCESS_OP;
 	}
     }
 
-    return -1;
+    return GENERAL_ERROR;
 }
 
 int change_user_name(Account_list lst, char *acc_name, char *new_name) {
     if (lst == NULL) {
 	printf("Unintialized account list\n");
-	return -1;
+	return GENERAL_ERROR;
     }
 
     Acc_node iter = NULL;
@@ -152,11 +159,11 @@ int change_user_name(Account_list lst, char *acc_name, char *new_name) {
 	if (strcmp(acc_name, iter->name) == 0) {
 	    free(iter->username);
 	    iter->username = strdup(new_name);
-	    return 0;
+	    return SUCCESS_OP;
 	}
     }
 
-    return -1;
+    return GENERAL_ERROR;
 }
 void destroyAccList(Account_list lst) {
     if (lst == NULL) {

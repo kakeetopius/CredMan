@@ -1,3 +1,9 @@
+/* 
+ * This source file contains all logic that is concerned 
+ * with interfacing with the sqlite3 library which 
+ * in turn controls the sqlite3 database
+ */
+
 #include <stdio.h>
 #include <string.h>
 
@@ -82,7 +88,7 @@ int decrypt_db(sqlite3 *db) {
     if (status == SQLITE_NOTADB) {
 	printf("Could not decrypt Database\n");
 	printf("Check the master password and try again\n");
-	return SQLITE_RELATED_ERROR;
+	return WRONG_MASTER_PASSWORD;
     }
     else if (status != SQLITE_OK) {
 	printf("Error executing query: %s\n", errmsg == NULL ? "" : errmsg);

@@ -1,5 +1,12 @@
+/* 
+ * This source file contains some helper functions
+ * used throughout other source files within the project
+ * for example proper handling of user input printing 
+ * relevant error messages, modifying terminal settings
+ * to enable entering credentials with 'echo' off etc
+ */
+
 #include "../includes/util.h"
-#include "../includes/db_access.h"
 #include "../includes/error_messages.h"
 #include "../includes/client_main.h"
 
@@ -20,7 +27,7 @@ int print_help(char *subcommand) {
     } else {
 	printf("Unknown subcommand: %s\n", subcommand);
 	printf("%s", GENERAL_MESSAGE);
-	return -1;
+	return GENERAL_ERROR;
     }
 
     return 0;
@@ -145,6 +152,10 @@ int get_creds_from_batch_file(Account_list a_lst, char *batch_file_name) {
     FILE *batch_file = fopen(batch_file_name, "r");
     if (!batch_file) {
 	perror("Error opening batch file");
+	return GENERAL_ERROR;
+    }
+    if (!a_lst) {
+	printf("Account_list object is NULL\n");
 	return GENERAL_ERROR;
     }
 
