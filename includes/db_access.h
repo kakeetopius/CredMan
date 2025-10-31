@@ -6,8 +6,6 @@
 #include "../includes/account.h"
 
 #ifndef _WIN32
-#define DB_FILE "/home/pius/.creds.db"
-#define DB_BACKUP "/home/pius/.creds_backup.db"
 #endif
 
 #define NON_AFFECTED_ERROR 11

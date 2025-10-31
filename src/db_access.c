@@ -7,16 +7,32 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h>
+
 #include "../includes/db_access.h"
 #include "../includes/error_messages.h"
 #include "../includes/util.h"
+
+char DB_FILE[100];
+char* CRED_FILE_NAME = ".creds.db";
+char DB_BACKUP[100];
+
 
 sqlite3 *open_db_con() {
     /*Test connection to test if database exists*/
     sqlite3 *db_test_con = NULL;
     /*Variable for return codes.*/
     int status;
+    
+    char* home = getenv("HOME");
+    if (!home) {
+	printf("Could not determine home path from environment variables\n");
+	return NULL;
+    }
 
+    snprintf(DB_FILE, 100, "%s/%s", home, CRED_FILE_NAME);
+
+    /*---Getting home path from environment variables----*/
     status = sqlite3_open_v2(DB_FILE, &db_test_con, SQLITE_OPEN_READONLY, 0);
     if (status == SQLITE_CANTOPEN) {
 	char choice[3];
