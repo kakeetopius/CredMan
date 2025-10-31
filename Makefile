@@ -30,7 +30,7 @@ SERVER_DEP = $(SERVER_OBJS:%.o=%.d)
 
 
 #----------------------Make targets-------------------------
-all: $(CLIENT_BIN) $(SERVER_BIN)
+all: $(CLIENT_BIN)
 
 
 $(CLIENT_BIN): $(CLIIENT_OBJS) | $(BINDIR)
@@ -62,7 +62,4 @@ $(BINDIR):
 -include $(SERVER_DEP)
 -include $(CLIENT_DEP)
 
-# #---------------Target for individual binary files (for testing a module)-------------
-# %: src/%.c db_structures.o | $(BINDIR)
-# 	$(CC) $(CFLAGS) $< -o $(BINDIR)/$@ $(SERVER_LIBS)
 
