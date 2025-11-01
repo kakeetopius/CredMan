@@ -36,21 +36,19 @@ sqlite3 *open_db_con() {
     status = sqlite3_open_v2(DB_FILE, &db_test_con, SQLITE_OPEN_READONLY, 0);
     if (status == SQLITE_CANTOPEN) {
 	char choice[3];
-	printf("Can't Find the Specified Database\n");
-	printf("Do you want to initialise a new one(y/n): ");
+	char* prompt = "Can't Find Credential Database\nDo you want to initialise it(y/n)?";
 
-	fgets(choice, sizeof(choice), stdin);
-	// check if some remaining stuff in stdin
-	if (strchr(choice, '\n') == NULL) {
-	    flush_stdin();
-	} else {
-	    // remove \n
-	    choice[strcspn(choice, "\n")] = '\0';
+	status = get_user_input(choice, sizeof(choice), prompt, 0, 0);
+
+	if (status != SUCCESS_OP) {
+	    return NULL;
 	}
 
 	if (strcmp(choice, "y") == 0) {
 	    status = create_new_database();
-	    return NULL;
+	    if (status != SUCCESS_OP) {
+		return NULL;
+	    }
 	}
 	// return NULL to tell main to stop execution.
 	return NULL;
