@@ -201,6 +201,7 @@ int change_details(char **argv, int argc, sqlite3 *db) {
 	status = update_db_field(db, DB_ACC_PASSWORD, account, pass);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
+	printf("New Password: %s\n", pass);
     } else {
 	printf("Unknown option: %s\n", option);
 	printf("%s", CHANGE_MESSAGE);
