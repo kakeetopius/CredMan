@@ -26,7 +26,7 @@ git clone https://github.com/kakeetopius/CredMan.git
 cd CredMan
 
 #Build
-make cman
+make cman && cd bin
 ```
 
 ## Sample Usage
