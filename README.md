@@ -18,6 +18,7 @@ Perfect for users requiring simple and local credential storage.
 ## ⚙️ Installation
 
 ```bash
+#install dependencies
 sudo apt install build-essential libsqlcipher-dev
 
 #clone the repository
