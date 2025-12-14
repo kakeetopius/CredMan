@@ -1,0 +1,62 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "obj/client_main.o",
+      "src/client_main.c"
+    ],
+    "directory": "/home/pius/Dev/Projects/CredMan",
+    "file": "/home/pius/Dev/Projects/CredMan/src/client_main.c",
+    "output": "/home/pius/Dev/Projects/CredMan/obj/client_main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "obj/account.o",
+      "src/account.c"
+    ],
+    "directory": "/home/pius/Dev/Projects/CredMan",
+    "file": "/home/pius/Dev/Projects/CredMan/src/account.c",
+    "output": "/home/pius/Dev/Projects/CredMan/obj/account.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "obj/db_access.o",
+      "src/db_access.c"
+    ],
+    "directory": "/home/pius/Dev/Projects/CredMan",
+    "file": "/home/pius/Dev/Projects/CredMan/src/db_access.c",
+    "output": "/home/pius/Dev/Projects/CredMan/obj/db_access.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-g",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "obj/util.o",
+      "src/util.c"
+    ],
+    "directory": "/home/pius/Dev/Projects/CredMan",
+    "file": "/home/pius/Dev/Projects/CredMan/src/util.c",
+    "output": "/home/pius/Dev/Projects/CredMan/obj/util.o"
+  }
+]

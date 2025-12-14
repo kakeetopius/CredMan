@@ -6,9 +6,9 @@
  * to enable entering credentials with 'echo' off etc
  */
 
-#include "../includes/util.h"
-#include "../includes/error_messages.h"
-#include "../includes/client_main.h"
+#include "util.h"
+#include "error_messages.h"
+#include "client_main.h"
 
 #include <stdio.h>
 #include <string.h>

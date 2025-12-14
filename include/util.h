@@ -9,7 +9,7 @@
 #endif
 
 /*Included here to provide definition of Account_list for the get_creds_from_batch_file() function*/
-#include "../includes/account.h"
+#include "account.h"
 
 /*---GENERIC ERROR CODES----*/
 #define SUCCESS_OP 0

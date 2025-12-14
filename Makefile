@@ -1,7 +1,7 @@
 #--------------Directories---------------------------
 OBJDIR = obj
 BINDIR = bin
-INCLUDEDIR = includes
+INCLUDEDIR = include
 
 #--------------Compiler options----------------------
 CC = gcc

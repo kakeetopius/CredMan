@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../includes/account.h"
-#include "../includes/util.h"
+#include "account.h"
+#include "util.h"
 
 Account_list createAccList() {
     Account_list lst = (Account_list)malloc(sizeof(struct account_list));

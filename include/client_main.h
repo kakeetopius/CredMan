@@ -2,7 +2,7 @@
 #define MAIN_H
 
 /* This is included here because of the sqlite3 interface required by all function prototypes. */
-#include "../includes/db_access.h"
+#include "db_access.h"
 
 
 /*------Function pointer to use for dispatch table----*/

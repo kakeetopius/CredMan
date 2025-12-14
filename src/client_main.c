@@ -13,10 +13,10 @@
 #include <time.h>
 #endif
 
-#include "../includes/account.h"
-#include "../includes/client_main.h"
-#include "../includes/error_messages.h"
-#include "../includes/util.h"
+#include "account.h"
+#include "client_main.h"
+#include "error_messages.h"
+#include "util.h"
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {

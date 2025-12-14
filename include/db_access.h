@@ -3,7 +3,7 @@
 
 #include <sqlcipher/sqlite3.h>
 
-#include "../includes/account.h"
+#include "account.h"
 
 #ifndef _WIN32
 #endif

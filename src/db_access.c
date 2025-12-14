@@ -9,9 +9,9 @@
 
 #include <stdlib.h>
 
-#include "../includes/db_access.h"
-#include "../includes/error_messages.h"
-#include "../includes/util.h"
+#include "db_access.h"
+#include "error_messages.h"
+#include "util.h"
 
 char DB_FILE[100];
 char* CRED_FILE_NAME = ".creds.db";
@@ -24,6 +24,7 @@ sqlite3 *open_db_con() {
     /*Variable for return codes.*/
     int status;
     
+    /*---Getting home path from environment variables----*/
     char* home = getenv("HOME");
     if (!home) {
 	printf("Could not determine home path from environment variables\n");
@@ -32,7 +33,6 @@ sqlite3 *open_db_con() {
 
     snprintf(DB_FILE, 100, "%s/%s", home, CRED_FILE_NAME);
 
-    /*---Getting home path from environment variables----*/
     status = sqlite3_open_v2(DB_FILE, &db_test_con, SQLITE_OPEN_READONLY, 0);
     if (status == SQLITE_CANTOPEN) {
 	char choice[3];
