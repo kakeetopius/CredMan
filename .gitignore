@@ -3,3 +3,4 @@ obj/
 bin/
 util/
 .cache/
+compile_commands.json
