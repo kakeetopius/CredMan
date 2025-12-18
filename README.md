@@ -14,7 +14,7 @@ Perfect for users requiring simple and local credential storage.
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ```bash
 #install dependencies
