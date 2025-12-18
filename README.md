@@ -6,12 +6,11 @@ Perfect for users requiring simple and local credential storage.
 
 ---
 
-## 🚀 Features
-- 🔒 Encrypted local credential storage (SQLCipher)
-- 🧩 Simple command-line interface
-- 🎲 Cryptographically secure password generator
-- 🪶 Lightweight, single binary
-- 🧠 Cross-platform (Linux, macOS, Windows)
+##  Features
+-  Encrypted local credential storage (SQLCipher)
+-  Simple command-line interface
+-  Cryptographically secure password generator
+-  Lightweight, single binary
 
 ---
 
