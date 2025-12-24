@@ -1,3 +1,6 @@
+.PHONY: clean build
+.DEFAULT_GOAL := build
+
 #--------------Directories---------------------------
 OBJDIR = obj
 BINDIR = bin
@@ -23,7 +26,7 @@ CLIENT_BIN = cman
 CLIENT_DEP = $(CLIIENT_OBJS:%.o=%.d)
 
 #----------------------Make targets-------------------------
-all: $(CLIENT_BIN)
+build: $(CLIENT_BIN)
 
 $(CLIENT_BIN): $(CLIIENT_OBJS) | $(BINDIR)
 	@echo "Compiling client..........."
@@ -36,6 +39,8 @@ clean:
 	@echo "Removing binaries.............."
 	@rm -rf $(OBJDIR) $(BINDIR)
 
+install: build
+	@cp $(BINDIR)/$(CLIENT_BIN) /usr/local/bin/ 
 
 #--------------Directories------------------
 $(OBJDIR):

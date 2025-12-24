@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
 	printf("%s", GENERAL_MESSAGE);
 	return GENERAL_ERROR;
-    } else if (strcmp(argv[1], "help") == 0) {
+    } else if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "-h") == 0) {
 	printf("%s", GENERAL_MESSAGE);
 	return 0;
     } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {

@@ -1,6 +1,6 @@
-/* 
- * This source file contains all logic that is concerned 
- * with interfacing with the sqlite3 library which 
+/*
+ * This source file contains all logic that is concerned
+ * with interfacing with the sqlite3 library which
  * in turn controls the sqlite3 database
  */
 
@@ -13,30 +13,33 @@
 #include "error_messages.h"
 #include "util.h"
 
-char DB_FILE[100];
-char* CRED_FILE_NAME = ".creds.db";
-char DB_BACKUP[100];
-
+char DB_FILE[256];
+char *CRED_FILE_NAME = ".creds.db";
+char DB_BACKUP[256];
 
 sqlite3 *open_db_con() {
     /*Test connection to test if database exists*/
     sqlite3 *db_test_con = NULL;
     /*Variable for return codes.*/
     int status;
-    
-    /*---Getting home path from environment variables----*/
-    char* home = getenv("HOME");
-    if (!home) {
-	printf("Could not determine home path from environment variables\n");
-	return NULL;
-    }
 
-    snprintf(DB_FILE, 100, "%s/%s", home, CRED_FILE_NAME);
+    /*---Getting db path from environment variables----*/
+    char *db_file_name = getenv("CMAN_DBFILE");
+    if (db_file_name) {
+	snprintf(DB_FILE, sizeof(DB_FILE), "%s", db_file_name);
+    } else {
+	char *home = getenv("HOME");
+	if (!home) {
+	    printf("Could not determine home path from environment variables\n");
+	    return NULL;
+	}
+	snprintf(DB_FILE, sizeof(DB_FILE), "%s/%s", home, CRED_FILE_NAME);
+    }
 
     status = sqlite3_open_v2(DB_FILE, &db_test_con, SQLITE_OPEN_READONLY, 0);
     if (status == SQLITE_CANTOPEN) {
 	char choice[3];
-	char* prompt = "Can't Find Credential Database\nDo you want to initialise it(y/n)?";
+	char *prompt = "Can't Find Credential Database\nDo you want to initialise it(y/n)?";
 
 	status = get_user_input(choice, sizeof(choice), prompt, 0, 0);
 
@@ -63,7 +66,7 @@ sqlite3 *open_db_con() {
 	printf("Error opening database\n");
 	return NULL;
     }
-    //decrypting the database before returning handle.
+    // decrypting the database before returning handle.
     status = decrypt_db(db_con);
     if (status != SQLITE_OK) {
 	return NULL;
@@ -103,8 +106,7 @@ int decrypt_db(sqlite3 *db) {
 	printf("Could not decrypt Database\n");
 	printf("Check the master password and try again\n");
 	return WRONG_MASTER_PASSWORD;
-    }
-    else if (status != SQLITE_OK) {
+    } else if (status != SQLITE_OK) {
 	printf("Error executing query: %s\n", errmsg == NULL ? "" : errmsg);
 	if (errmsg) {
 	    sqlite3_free(errmsg);
@@ -149,7 +151,7 @@ int change_db_master_password(sqlite3 *db) {
     return SUCCESS_OP;
 }
 
-int check_account_exists(sqlite3* db, char* acc_name) {
+int check_account_exists(sqlite3 *db, char *acc_name) {
     sqlite3_stmt *stmt;
     const char *sql = "SELECT EXISTS(SELECT 1 FROM account WHERE acc_name = ?);";
     int status;
@@ -168,7 +170,7 @@ int check_account_exists(sqlite3* db, char* acc_name) {
 
     int exists = 0;
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-	exists = sqlite3_column_int(stmt, 0);  
+	exists = sqlite3_column_int(stmt, 0);
     }
 
     return exists == 1 ? DB_ROW_EXISTS : DB_ROW_NX;
@@ -347,13 +349,13 @@ int get_account_by_name(sqlite3 *db, char *acc_name, struct account *acc) {
 	return SQLITE_RELATED_ERROR;
     }
 
-    const unsigned char* a_name = sqlite3_column_text(pstmt, 0);
-    const unsigned char* username = sqlite3_column_text(pstmt, 1);
-    const unsigned char* pass = sqlite3_column_text(pstmt, 2);
+    const unsigned char *a_name = sqlite3_column_text(pstmt, 0);
+    const unsigned char *username = sqlite3_column_text(pstmt, 1);
+    const unsigned char *pass = sqlite3_column_text(pstmt, 2);
 
-    acc->name = strdup((char*)a_name);
-    acc->username = strdup((char*)username);
-    acc->password = strdup((char*)pass);
+    acc->name = strdup((char *)a_name);
+    acc->username = strdup((char *)username);
+    acc->password = strdup((char *)pass);
 
     sqlite3_finalize(pstmt);
     return SUCCESS_OP;
@@ -458,4 +460,3 @@ int create_new_database() {
 
     return SUCCESS_OP;
 }
-
