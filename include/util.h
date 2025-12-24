@@ -92,4 +92,6 @@ void remove_secure_input(struct termios *oldt);
  * in order to prevent subsquent calls to fgets from behaving unexpectedly.
  */
 void flush_stdin();
+
+void print_result(char* fieldname, char* value);
 #endif

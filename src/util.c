@@ -1,14 +1,14 @@
-/* 
+/*
  * This source file contains some helper functions
  * used throughout other source files within the project
- * for example proper handling of user input printing 
+ * for example proper handling of user input printing
  * relevant error messages, modifying terminal settings
  * to enable entering credentials with 'echo' off etc
  */
 
 #include "util.h"
-#include "error_messages.h"
 #include "client_main.h"
+#include "error_messages.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -31,6 +31,16 @@ int print_help(char *subcommand) {
     }
 
     return 0;
+}
+
+void print_result(char *fieldname, char *value) {
+    if (!fieldname || !value) {
+	return;
+    }
+    if (isatty(STDIN_FILENO)) {
+	printf("%s:        ", fieldname);
+    }
+    printf("%s\n", value);
 }
 
 int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, int secret) {
@@ -181,16 +191,15 @@ int get_creds_from_batch_file(Account_list a_lst, char *batch_file_name) {
 	    fclose(batch_file);
 	    return GENERAL_ERROR;
 	}
-	status = split_batch_line(batch_file_line, acc_name, user_name, password, line_no); 
+	status = split_batch_line(batch_file_line, acc_name, user_name, password, line_no);
 	if (status == GENERAL_ERROR) {
 	    fclose(batch_file);
 	    return GENERAL_ERROR;
-	}
-	else if (status == LINE_EMPTY) {
+	} else if (status == LINE_EMPTY) {
 	    line_no++;
 	    continue;
 	}
-	status = insert_acc(a_lst, acc_name, password, user_name); 
+	status = insert_acc(a_lst, acc_name, password, user_name);
 	if (status != SUCCESS_OP) {
 	    fclose(batch_file);
 	    return GENERAL_ERROR;
@@ -205,7 +214,7 @@ int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *pa
     if (!batch_line || !acc_name || !user_name || !password) {
 	return GENERAL_ERROR;
     }
-    
+
     if (batch_line[0] == '\n') {
 	printf("Line %d is empty. Skipping it.\n", line_no);
 	return LINE_EMPTY;
@@ -240,18 +249,16 @@ int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *pa
      */
 
     int acc_name_len = first_comma_index;
-    int user_name_len = second_comma_index - first_comma_index - 1; 
+    int user_name_len = second_comma_index - first_comma_index - 1;
     int password_len = batch_line_strlen - second_comma_index - 1;
 
     if (acc_name_len >= CRED_BUFF_LEN) {
 	printf("Account name on line %d is too long. Limit it to %d characters.\n", line_no, CRED_BUFF_LEN);
 	return GENERAL_ERROR;
-    }
-    else if (user_name_len >= CRED_BUFF_LEN) {
+    } else if (user_name_len >= CRED_BUFF_LEN) {
 	printf("User name on line %d is too long. Limit it to %d characters\n", line_no, CRED_BUFF_LEN);
 	return GENERAL_ERROR;
-    }
-    else if (password_len >= CRED_BUFF_LEN) {
+    } else if (password_len >= CRED_BUFF_LEN) {
 	printf("Password on line %d is too long. Limit it to %d characters.\n", line_no, CRED_BUFF_LEN);
 	return GENERAL_ERROR;
     }
@@ -269,11 +276,9 @@ int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *pa
     /* Clearing any newline characters for the last field(password) and properly null terminating*/
     if (strchr(password, '\n') != NULL) {
 	password[strcspn(password, "\n")] = '\0';
-    }
-    else {
+    } else {
 	password[password_len] = '\0';
     }
-
 
     /*If password needs to be automatically generated*/
     if (strcmp(password, "?") == 0) {
@@ -289,5 +294,3 @@ int split_batch_line(char *batch_line, char *acc_name, char *user_name, char *pa
 
     return SUCCESS_OP;
 }
-
-

@@ -34,6 +34,7 @@ struct ChangeArgs {
 #define CHANGE_FLAG_FIELD_USERNAME 0x0008
 #define CHANGE_FLAG_FIELD_PASS 0x0010
 #define CHANGE_FLAG_FIELD_ACCNAME 0x0020
+#define CHANGE_FLAG_MASTER 0x0040
 
 struct DeleteArgs {
     char *secretName;

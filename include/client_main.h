@@ -24,20 +24,6 @@ struct sub_command {
 
 
 /*--The following functions are of type Handler and are used to carry out the different functions for the sub commands*/
-int change_details(char **argv, int argc, sqlite3 *db);
-int delete_account(char **argv, int argc, sqlite3 *db);
-int get_details(char **argv, int argc, sqlite3 *db);
-int list_accounts(char **argv, int argc, sqlite3 *db);
-int add_acc(char **argv, int argc, sqlite3 *db);
-
-
-/*
-* add_acc_via_batch is invoked when the user specifies that accounts should be added by reading from a file.
-* Paramaters:
-* 1. db: On open and decrypted sqlite database handler that will be used to interface with the db_acess module.
-* 2. batch_file_name: The name of the file on the file system that contains credentials to be added to database.
-*/
-int add_acc_via_batch(sqlite3 *db, char *batch_file_name);
 
 /*
 * get_pass_string is used to generate a password string whose size is defined by the macro PASSWORD_LENGTH

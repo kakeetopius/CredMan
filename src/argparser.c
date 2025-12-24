@@ -118,7 +118,7 @@ int addArgParser(int argc, char **argv, void *arguments) {
     }
     args->flags = 0;
     args->secretName = argv[2];
-    
+
     int i = 3;
     while (i < argc) {
 	if (argv[i][0] == '-') {
@@ -242,6 +242,10 @@ int changeArgParser(int argc, char **argv, void *arguments) {
     }
 
     struct ChangeArgs *args = (struct ChangeArgs *)arguments;
+    if (strings_match(argv[2], "--master")) {
+	args->flags = args->flags | CHANGE_FLAG_MASTER;
+	return SUCCESS_OP;
+    }
 
     if (check_if_help_requested(argv[2]) == USER_REQUESTED_HELP) {
 	printf("%s", CHANGE_MESSAGE);
@@ -293,6 +297,8 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 		continue;
 	    } else if (strings_match(argv[i], "--no-auto")) {
 		args->flags = args->flags | CHANGE_FLAG_NOAUTO;
+	    } else if (strings_match(argv[i], "--master")) {
+		args->flags = args->flags | CHANGE_FLAG_MASTER;
 	    } else {
 		printf("Unknown option: %s. Use cman change -h for more information\n", argv[i]);
 		return GENERAL_ERROR;
@@ -377,8 +383,7 @@ int deleteArgParser(int argc, char **argv, void *arguments) {
 	    }
 	    i = i + 2; // skip checking the next argument.
 	    continue;
-	}
-	else {
+	} else {
 	    printf("Unknown option: %s. Use cman delete -h for more information.\n", argv[i]);
 	    return GENERAL_ERROR;
 	}
