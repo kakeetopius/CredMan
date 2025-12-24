@@ -13,6 +13,7 @@
 
 /*---GENERIC ERROR CODES----*/
 #define SUCCESS_OP 0
+#define USER_REQUESTED_HELP 1
 #define GENERAL_ERROR -1
 #define LINE_EMPTY 21
 
