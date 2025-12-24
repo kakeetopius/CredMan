@@ -21,7 +21,7 @@ Perfect for users requiring simple and local credential storage.
 sudo apt install build-essential libsqlcipher-dev
 
 #clone the repository
-git clone https://github.com/kakeetopius/CredMan.git
+git clone https://github.com/kakeetopius/credman.git
 cd CredMan
 
 #Build
