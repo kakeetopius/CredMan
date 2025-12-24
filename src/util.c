@@ -114,6 +114,9 @@ void set_secure_input(struct termios *oldt) {
     DWORD newMode = mode & ~ENABLE_ECHO_INPUT;
     SetConsoleMode(hStdin, newMode);
 #else
+    if (!isatty(STDIN_FILENO)) {
+	return;
+    }
 
     // Get current terminal settings
     if (tcgetattr(STDIN_FILENO, oldt) != 0) {
