@@ -34,14 +34,15 @@ int print_help(char *subcommand) {
 }
 
 int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, int secret) {
-
     struct termios oldt; // to store old terminal settings
     // Remove echo when typing input.
     if (secret == 1)
 	set_secure_input(&oldt);
 
     char temp_buff[64];
-    printf("%s: ", prompt);
+    if (isatty(STDIN_FILENO)) {
+	printf("%s: ", prompt);
+    }
     fgets(temp_buff, sizeof(temp_buff), stdin);
     printf("\n");
     int temp_buff_strlen;
@@ -140,6 +141,9 @@ void remove_secure_input(struct termios *oldt) {
     // Restore original console mode
     SetConsoleMode(hStdin, mode);
 #else
+    if (!isatty(STDIN_FILENO)) {
+	return;
+    }
     // Restore original terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, oldt);
 #endif

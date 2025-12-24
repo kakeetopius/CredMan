@@ -22,8 +22,6 @@ struct sub_command {
 
 /*-----------------------------------Function declarations------------------------------------------------------------*/
 
- /*--handle_input is used to parse the arguments from the command line and execute the required handler*/
-int handle_input(int argc, char *argv[], sqlite3 *db);
 
 /*--The following functions are of type Handler and are used to carry out the different functions for the sub commands*/
 int change_details(char **argv, int argc, sqlite3 *db);

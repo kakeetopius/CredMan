@@ -12,7 +12,7 @@ CFLAGS =  -Wall -g -I$(INCLUDEDIR) -MMD -MP
 CLIENT_LIBS = -lsqlcipher
 
 #----------------Source Files----------------------------
-CLIENT_SRCS = src/client_main.c src/account.c src/db_access.c src/util.c
+CLIENT_SRCS = src/client_main.c src/account.c src/db_access.c src/util.c src/argparser.c src/commands.c
 
 
 #----------------Object Files-----------------------------

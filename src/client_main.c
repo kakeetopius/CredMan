@@ -1,10 +1,10 @@
 /*
-*client_main.c is the entry point for the application.
-*It contains all the logic necessary to deal with 
-*user input and launching the necessary handler depending
-*on what is required by user (adding, changing, searching
-*deleting and listing of account credentials).
-*/
+ *client_main.c is the entry point for the application.
+ *It contains all the logic necessary to deal with
+ *user input and launching the necessary handler depending
+ *on what is required by user (adding, changing, searching
+ *deleting and listing of account credentials).
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,28 +14,32 @@
 #endif
 
 #include "account.h"
+#include "argparser.h"
 #include "client_main.h"
 #include "error_messages.h"
 #include "util.h"
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-	printf("%s", GENERAL_MESSAGE);
-	return GENERAL_ERROR;
-    } else if (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "-h") == 0) {
-	printf("%s", GENERAL_MESSAGE);
+    struct Command *cmd = NULL;
+
+    int status = parse_args(argc, argv, &cmd);
+    if (status == USER_REQUESTED_HELP) {
 	return 0;
-    } else if (argc == 3 && (strcmp(argv[2], "help") == 0)) {
-	return print_help(argv[1]);
+    } else if (!cmd) {
+	return GENERAL_ERROR;
+    } else if (status != SUCCESS_OP) {
+	return GENERAL_ERROR;
     }
 
     sqlite3 *db_con = open_db_con();
     if (!db_con) {
+	free_arguments(cmd);
 	return GENERAL_ERROR;
     }
 
-    int status = handle_input(argc, argv, db_con);
+    status = cmd->Run(cmd->arguments, db_con);
 
+    free_arguments(cmd);
     sqlite3_close(db_con);
 
     return status;
@@ -302,41 +306,6 @@ int list_accounts(char **argv, int argc, sqlite3 *db) {
     }
     destroyAccList(a_lst);
     return SUCCESS_OP;
-}
-
-int handle_input(int argc, char *argv[], sqlite3 *db) {
-    if (argc < 2 || argc > 5) {
-	printf("%s", GENERAL_MESSAGE);
-	return GENERAL_ERROR;
-    }
-
-    int status = 0;
-
-    char *command = argv[1];
-
-    /*------------Dispatch table for subcommands------------*/
-    struct sub_command dispatch[] = {
-	{"ls", list_accounts},
-	{"add", add_acc},
-	{"get", get_details},
-	{"change", change_details},
-	{"delete", delete_account},
-	{NULL, NULL}};
-
-    int dispatch_size = sizeof(dispatch) / sizeof(dispatch[0]);
-
-    for (int i = 0; i < dispatch_size; i++) {
-	if (dispatch[i].name == NULL) { /*If the end of the dispatch array is reached and no matches*/
-	    printf("Unknown Command: %s\n", command);
-	    printf("%s", GENERAL_MESSAGE);
-	    return GENERAL_ERROR;
-	} else if (strcmp(command, dispatch[i].name) == 0) {
-	    status = dispatch[i].command_handler(argv, argc, db);
-	    break;
-	}
-    }
-
-    return status;
 }
 
 int get_pass_string(char *pass_buff, int buff_size) {
