@@ -37,10 +37,7 @@ void print_result(char *fieldname, char *value) {
     if (!fieldname || !value) {
 	return;
     }
-    if (isatty(STDIN_FILENO)) {
-	printf("%s:        ", fieldname);
-    }
-    printf("%s\n", value);
+    printf("%s %s\n", isatty(STDIN_FILENO) ? fieldname : "", value);
 }
 
 int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, int secret) {

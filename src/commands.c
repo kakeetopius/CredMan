@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "argparser.h"
 #include "client_main.h"
@@ -131,6 +131,18 @@ int change_details(struct ChangeArgs *args, sqlite3 *db) {
 	    return GENERAL_ERROR;
     } else if (args->flags & CHANGE_FLAG_FIELD_PASS) {
 	char pass[CRED_BUFF_LEN];
+	char choice[5];
+	char confirmation[128];
+	snprintf(confirmation, sizeof(confirmation), "Are you sure you want to change the password for account %s (yes/no)?", account);
+
+	status = get_user_input(choice, 5, confirmation, 0, 0);
+	if (status != SUCCESS_OP) {
+	    return GENERAL_ERROR;
+	}
+	if (strcmp(choice, "yes") != 0) {
+	    printf("Password not changed\n");
+	    return GENERAL_ERROR;
+	}
 	if (args->flags & CHANGE_FLAG_NOAUTO) {
 	    status = get_user_input(pass, CRED_BUFF_LEN, "Enter New Password", 1, 1);
 	    if (status != SUCCESS_OP)
@@ -210,9 +222,9 @@ int get_details(struct GetArgs *args, sqlite3 *db) {
     if (status != SUCCESS_OP) {
 	return GENERAL_ERROR;
     }
-    print_result("Account Name", acc.name);
-    print_result("User Name", acc.username);
-    print_result("Password", acc.password);
+    print_result("Account Name:    ", acc.name);
+    print_result("User Name:       ", acc.username);
+    print_result("Password:        ", acc.password);
 
     free(acc.username);
     free(acc.name);
@@ -225,7 +237,7 @@ int list_accounts(struct ListArgs *args, sqlite3 *db) {
     if (!args || !db) {
 	return GENERAL_ERROR;
     }
-    
+
     Account_list a_lst = createAccList();
 
     int status = get_all_credentials(db, a_lst);
@@ -243,7 +255,7 @@ int list_accounts(struct ListArgs *args, sqlite3 *db) {
     return SUCCESS_OP;
 }
 int runAdd(void *arguments, sqlite3 *db) {
-    struct AddArgs* args = (struct AddArgs *)arguments;
+    struct AddArgs *args = (struct AddArgs *)arguments;
     if (args->flags & ADD_FLAG_BATCHFILE) {
 	return add_acc_via_batch(args->secretName, db);
     }
@@ -252,17 +264,17 @@ int runAdd(void *arguments, sqlite3 *db) {
 }
 
 int runChange(void *arguments, sqlite3 *db) {
-    return change_details((struct ChangeArgs*)arguments, db);
+    return change_details((struct ChangeArgs *)arguments, db);
 }
 
 int runGet(void *arguments, sqlite3 *db) {
-    return get_details((struct GetArgs*)arguments, db);
+    return get_details((struct GetArgs *)arguments, db);
 }
 
 int runList(void *arguments, sqlite3 *db) {
-    return list_accounts((struct ListArgs*)arguments, db);
+    return list_accounts((struct ListArgs *)arguments, db);
 }
 
 int runDelete(void *arguments, sqlite3 *db) {
-    return delete_account((struct DeleteArgs*)arguments, db);
+    return delete_account((struct DeleteArgs *)arguments, db);
 }

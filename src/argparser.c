@@ -125,9 +125,6 @@ int addArgParser(int argc, char **argv, void *arguments) {
 	    // if argument.
 	    if (strings_match(argv[i], "-b") || strings_match(argv[i], "--batch")) {
 		args->flags = args->flags | ADD_FLAG_BATCHFILE;
-
-		i = i + 2; // skip checking the next argument.
-		continue;
 	    } else if (strings_match(argv[i], "-t") || strings_match(argv[i], "--type")) {
 		if (argc == i + 1) {
 		    printf("No type given. Use cman add -h for more information\n");
