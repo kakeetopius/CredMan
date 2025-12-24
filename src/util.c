@@ -37,7 +37,8 @@ void print_result(char *fieldname, char *value) {
     if (!fieldname || !value) {
 	return;
     }
-    printf("%s %s\n", isatty(STDIN_FILENO) ? fieldname : "", value);
+    int istty = isatty(STDIN_FILENO);
+    printf("%s%s%s", istty ? fieldname : "", value, istty ? "\n" : "");
 }
 
 int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, int secret) {
@@ -47,11 +48,13 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
 	set_secure_input(&oldt);
 
     char temp_buff[64];
-    if (isatty(STDIN_FILENO)) {
+    int istty = isatty(STDIN_FILENO);
+    if (istty) {
 	printf("%s: ", prompt);
     }
     fgets(temp_buff, sizeof(temp_buff), stdin);
-    printf("\n");
+    if (istty)
+	printf("\n");
     int temp_buff_strlen;
 
     // if some text remained in stdin

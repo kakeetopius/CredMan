@@ -222,9 +222,15 @@ int get_details(struct GetArgs *args, sqlite3 *db) {
     if (status != SUCCESS_OP) {
 	return GENERAL_ERROR;
     }
-    print_result("Account Name:    ", acc.name);
-    print_result("User Name:       ", acc.username);
-    print_result("Password:        ", acc.password);
+    if (args->flags & GET_FLAG_FIELD_USERNAME)
+	print_result("User Name:       ", acc.username);
+    else if (args->flags & GET_FLAG_FIELD_PASS)
+	print_result("Password:        ", acc.password);
+    else {
+	print_result("Account:         ", acc.username);
+	print_result("User Name:       ", acc.username);
+	print_result("Password:        ", acc.password);
+    }
 
     free(acc.username);
     free(acc.name);
