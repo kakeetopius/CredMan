@@ -252,7 +252,7 @@ int delete_account(char **argv, int argc, sqlite3 *db) {
 /*--- Dispatch function to handle searching of account details-----*/
 int get_details(char **argv, int argc, sqlite3 *db) {
     if (argc != 3) {
-	printf("%s", SEARCH_MESSAGE);
+	printf("%s", GET_MESSAGE);
 	return GENERAL_ERROR;
     }
 
@@ -318,7 +318,7 @@ int handle_input(int argc, char *argv[], sqlite3 *db) {
     struct sub_command dispatch[] = {
 	{"ls", list_accounts},
 	{"add", add_acc},
-	{"search", get_details},
+	{"get", get_details},
 	{"change", change_details},
 	{"delete", delete_account},
 	{NULL, NULL}};

@@ -39,7 +39,7 @@ clean:
 	@echo "Removing binaries.............."
 	@rm -rf $(OBJDIR) $(BINDIR)
 
-install: build
+install: build 
 	@cp $(BINDIR)/$(CLIENT_BIN) /usr/local/bin/ 
 
 #--------------Directories------------------

@@ -20,8 +20,8 @@ int print_help(char *subcommand) {
 	printf("%s", CHANGE_MESSAGE);
     } else if (strcmp(subcommand, "delete") == 0) {
 	printf("%s", DELETE_MESSAGE);
-    } else if (strcmp(subcommand, "search") == 0) {
-	printf("%s", SEARCH_MESSAGE);
+    } else if (strcmp(subcommand, "get") == 0) {
+	printf("%s", GET_MESSAGE);
     } else if (strcmp(subcommand, "ls") == 0) {
 	printf("%s", LS_MESSAGE);
     } else {
