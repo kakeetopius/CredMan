@@ -1,8 +1,18 @@
 #ifndef ARGPARSER_H
 #define ARGPARSER_H
 
-#include "commands.h"
-extern struct Command commands[];
+#include "commands/runners.h"
+
+typedef int (*ArgParser)(int, char **, void *); // argv, argc, struct to fill with options
+
+struct Command {
+    char *name;
+    void *arguments;
+    ArgParser argparser;
+    Runner Run;
+};
+
+extern struct Command commands[]; // static command objects array each having context about a particular subcommand like Get, ls etc.
 
 struct AddArgs {
     char *secretName;
@@ -57,7 +67,7 @@ struct ListArgs {
 int handle_input(int argc, char *argv[]);
 
 int parse_args(int argc, char *argv[], struct Command **command);
-int check_if_help_requested(char* arg);
+int check_if_help_requested(char *arg);
 
 int addArgParser(int argc, char **argv, void *arguments);
 int changeArgParser(int argc, char **argv, void *arguments);

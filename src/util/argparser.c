@@ -3,9 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "argparser.h"
-#include "error_messages.h"
-#include "util.h"
+#include "util/argparser.h"
+#include "util/errors.h"
 
 struct Command commands[] = {
     {.name = "add", .argparser = addArgParser, .Run = runAdd},
@@ -409,4 +408,3 @@ int deleteArgParser(int argc, char **argv, void *arguments) {
 
     return SUCCESS_OP;
 }
-

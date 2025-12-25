@@ -1,9 +1,24 @@
-#ifndef ERROR_MESSAGE_H
+#ifndef ERRORS_H
+#define ERRORS_H
+
+/*---ERROR CODES----*/
+#define SUCCESS_OP 0
+#define USER_REQUESTED_HELP 1
+#define LINE_EMPTY 2
+
+#define NON_AFFECTED_ERROR 3
+#define SQLITE_RELATED_ERROR 4
+#define DB_ROW_EXISTS 5
+#define DB_ROW_NX 6
+#define WRONG_MASTER_PASSWORD 7
+
+#define GENERAL_ERROR -1
+
 #define GENERAL_MESSAGE "\nSub Commands: \n"                                                                                   \
 			"ls\t\tList all account details\n"                                                                     \
 			"add\t\tAdd a new account\n"                                                                           \
 			"change\t\tChange details of an account\n"                                                             \
-			"get\t\tGet details for an account\n"                                                                    \
+			"get\t\tGet details for an account\n"                                                                  \
 			"delete\t\tDelete an account\n"                                                                        \
 			"help\t\tDisplay this message\n\n"                                                                     \
 			"Use cman <sub-command> help for details about a sub command\n\n"                                      \
