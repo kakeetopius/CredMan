@@ -15,12 +15,18 @@
 #define WRONG_MASTER_PASSWORD 15
 
 /*-----------This enum is utilised by the update_db_field() to indicate which field is being updated in the database----------*/
-enum db_fields {
+enum account_db_fields {
     DB_ACC_NAME,
     DB_USER_NAME,
-    DB_ACC_PASSWORD
+    DB_ACC_PASSWORD,
 };
 
+enum apikey_db_fields {
+    DB_API_NAME,
+    DB_API_SERVICE,
+    DB_API_USERNAME,
+    DB_API_KEY,
+};
 /*
  * open_db_con() will invoke sqlite3_open() to get a database handler for database with name DB_FILE
  *
@@ -89,7 +95,7 @@ int get_account_by_name(sqlite3* db, char* acc_name, struct account *acc);
  * SQLITE_RELATED_ERROR: if sqlite3 reports any other error.
  * GENERAL_ERROR: otherwise eg if db or acc are NULL.
  */
-int update_db_field(sqlite3 *db, enum db_fields toUpdate, char *acc_name, char *new_field_value);
+int update_acc_db_field(sqlite3 *db, enum account_db_fields toUpdate, char *acc_name, char *new_field_value);
 
 /*
  * delete_account_from_db() is used to delete an account from the database.
@@ -156,6 +162,13 @@ int change_db_master_password(sqlite3 *db);
 */
 int check_account_exists(sqlite3* db, char* acc_name);
 
+
+int check_apikey_exists(sqlite3 *db, char *api_name);
+int add_apikey_to_db(sqlite3 *db, Api_Key key);
+int delete_apikey_from_db(sqlite3 *db, char *key_name);
+int update_api_db_field(sqlite3 *db, enum apikey_db_fields toUpdate, char *api_name, char *new_field_value);
+int get_apikey_by_name(sqlite3 *db, char *api_name, Api_Key key);
+int get_all_apikeys(sqlite3 *db, struct api_list *api_list);
 
 #endif
 

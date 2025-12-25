@@ -119,14 +119,14 @@ int change_details(struct ChangeArgs *args, sqlite3 *db) {
 	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New User Name", 0, 0);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
-	status = update_db_field(db, DB_USER_NAME, account, new_value);
+	status = update_acc_db_field(db, DB_USER_NAME, account, new_value);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
     } else if (args->flags & CHANGE_FLAG_FIELD_ACCNAME) {
 	status = get_user_input(new_value, CRED_BUFF_LEN, "Enter New Account Name", 0, 0);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
-	status = update_db_field(db, DB_ACC_NAME, account, new_value);
+	status = update_acc_db_field(db, DB_ACC_NAME, account, new_value);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
     } else if (args->flags & CHANGE_FLAG_FIELD_PASS) {
@@ -154,7 +154,7 @@ int change_details(struct ChangeArgs *args, sqlite3 *db) {
 	    pass[PASSWORD_LENGTH] = '\0';
 	}
 
-	status = update_db_field(db, DB_ACC_PASSWORD, account, pass);
+	status = update_acc_db_field(db, DB_ACC_PASSWORD, account, pass);
 	if (status != SUCCESS_OP)
 	    return GENERAL_ERROR;
 	printf("New Password: %s\n", pass);
