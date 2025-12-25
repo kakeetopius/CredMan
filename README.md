@@ -31,7 +31,7 @@ meson compile
 sudo meson install
 ```
 
-## [!Note]
+## ![Note]
 On first usage cman will create a database (.creds.db) in the home directory and will prompt for a master password to use when 
 encrypting the database and must be provided for all subsequent usages for decryption. If the user wants to store the database
 at a different location the path must be set in the environment variable $CMAN_DBFILE. ie
