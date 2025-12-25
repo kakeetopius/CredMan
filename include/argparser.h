@@ -22,6 +22,8 @@ struct GetArgs {
 #define GET_FLAG_QUIET 0x0004
 #define GET_FLAG_FIELD_USERNAME 0x0008
 #define GET_FLAG_FIELD_PASS 0x0010
+#define GET_FLAG_FIELD_APISERVICE 0x0040
+#define GET_FLAG_FIELD_APIKEY 0x0080
 
 struct ChangeArgs {
     char *secretName;
@@ -35,6 +37,9 @@ struct ChangeArgs {
 #define CHANGE_FLAG_FIELD_PASS 0x0010
 #define CHANGE_FLAG_FIELD_ACCNAME 0x0020
 #define CHANGE_FLAG_MASTER 0x0040
+#define CHANGE_FLAG_FIELD_APINAME 0X0080
+#define CHANGE_FLAG_FIELD_APISERVICE 0x0100
+#define CHANGE_FLAG_FIELD_APIKEY 0x200
 
 struct DeleteArgs {
     char *secretName;

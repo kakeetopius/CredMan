@@ -302,7 +302,7 @@ int add_apikey_to_db(sqlite3 *db, Api_Key key) {
 	sqlite3_finalize(pStmt);
 	return SQLITE_RELATED_ERROR;
     }
-    status = sqlite3_bind_text(pStmt, 3, key->key, -1, SQLITE_TRANSIENT);
+    status = sqlite3_bind_text(pStmt, 4, key->key, -1, SQLITE_TRANSIENT);
     if (status != SQLITE_OK) {
 	printf("Error: %s\n", sqlite3_errmsg(db));
 	sqlite3_finalize(pStmt);
@@ -644,7 +644,7 @@ int get_all_apikeys(sqlite3 *db, struct api_list *api_list) {
 	unsigned const char *api_name = sqlite3_column_text(pre_stmt, 0);
 	unsigned const char *service = sqlite3_column_text(pre_stmt, 1);
 	unsigned const char *user_name = sqlite3_column_text(pre_stmt, 2);
-	unsigned const char *api_key = sqlite3_column_text(pre_stmt, 2);
+	unsigned const char *api_key = sqlite3_column_text(pre_stmt, 3);
 	int insert_status = insert_apinode(api_list, (char *)api_name, (char *)user_name, (char *)service, (char*)api_key);
 	if (insert_status != 0) {
 	    sqlite3_finalize(pre_stmt);
@@ -684,8 +684,8 @@ int create_new_database() {
 	"api_id INTEGER PRIMARY KEY AUTOINCREMENT,"
 	"api_name VARCHAR(100) NOT NULL,"
 	"service VARCHAR(100) NOT NULL,"
-	"user_name VARCHAR(100) NOT NULL"
-	"api_key VARCHAR(256) NOT NULL,"
+	"user_name VARCHAR(100) NOT NULL,"
+	"api_key VARCHAR(256) NOT NULL"
 	");";
 
     char pragma_stmt[CRED_BUFF_LEN + 32];

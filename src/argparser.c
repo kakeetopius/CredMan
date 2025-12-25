@@ -133,7 +133,7 @@ int addArgParser(int argc, char **argv, void *arguments) {
 		char *type = argv[i + 1];
 		if (strings_match(type, "login")) {
 		    args->flags = args->flags | ADD_FLAG_TYPE_LOGIN;
-		} else if (strings_match(type, "api_key")) {
+		} else if (strings_match(type, "api")) {
 		    args->flags = args->flags | ADD_FLAG_TYPE_APIKEY;
 		} else {
 		    printf("Unknown type: %s. Use cman add -h for more information.\n", type);
@@ -190,6 +190,10 @@ int getArgParser(int argc, char **argv, void *arguments) {
 		    args->flags = args->flags | GET_FLAG_FIELD_USERNAME;
 		} else if (strings_match(field, "pass")) {
 		    args->flags = args->flags | GET_FLAG_FIELD_PASS;
+		} else if (strings_match(field, "service")) {
+		    args->flags = args->flags | GET_FLAG_FIELD_APISERVICE;
+		} else if (strings_match(field, "key")) {
+		    args->flags = args->flags | GET_FLAG_FIELD_APIKEY;
 		} else {
 		    printf("Unknown field type: %s. Use cman get -h for more information.\n", field);
 		    return GENERAL_ERROR;
@@ -205,7 +209,7 @@ int getArgParser(int argc, char **argv, void *arguments) {
 		char *type = argv[i + 1];
 		if (strings_match(type, "login")) {
 		    args->flags = args->flags | GET_FLAG_TYPE_LOGIN;
-		} else if (strings_match(type, "api_key")) {
+		} else if (strings_match(type, "api")) {
 		    args->flags = args->flags | GET_FLAG_TYPE_APIKEY;
 		} else {
 		    printf("Unknown type: %s. Use cman get -h for more information.\n", type);
@@ -213,8 +217,6 @@ int getArgParser(int argc, char **argv, void *arguments) {
 		}
 		i = i + 2; // skip checking the next argument.
 		continue;
-	    } else if (strings_match(argv[i], "-q") || strings_match(argv[i], "--quiet")) {
-		args->flags = args->flags | GET_FLAG_QUIET;
 	    } else {
 		printf("Unknown option: %s. Use cman get -h for more information.\n", argv[i]);
 		return GENERAL_ERROR;
@@ -269,8 +271,14 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 		    args->flags = args->flags | CHANGE_FLAG_FIELD_USERNAME;
 		} else if (strings_match(field, "accname")) {
 		    args->flags = args->flags | CHANGE_FLAG_FIELD_ACCNAME;
+		} else if (strings_match(field, "apiname")) {
+		    args->flags = args->flags | CHANGE_FLAG_FIELD_APINAME;
+		} else if (strings_match(field, "service")) {
+		    args->flags = args->flags | CHANGE_FLAG_FIELD_APISERVICE;
+		} else if (strings_match(field, "key")) {
+		    args->flags = args->flags | CHANGE_FLAG_FIELD_APIKEY;
 		} else {
-		    printf("Unknown field type: %s. Use cman change -h for more information\n.", field);
+		    printf("Unknown field type: %s. Use cman change -h for more information.\n", field);
 		    return GENERAL_ERROR;
 		}
 
@@ -284,7 +292,7 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 		char *type = argv[i + 1];
 		if (strings_match(type, "login")) {
 		    args->flags = args->flags | CHANGE_FLAG_TYPE_LOGIN;
-		} else if (strings_match(type, "api_key")) {
+		} else if (strings_match(type, "api")) {
 		    args->flags = args->flags | CHANGE_FLAG_TYPE_APIKEY;
 		} else {
 		    printf("Unknown type: %s. Use cman change -h for more information\n", type);
@@ -329,10 +337,22 @@ int listArgParser(int argc, char **argv, void *arguments) {
     }
     int i = 2;
     while (i < argc) {
-	if (argv[i][0] == '-') {
-	    // if argument.
-	    printf("Unknown Option: %s. Use cman ls -h for more information.\n", argv[i]);
-	    return GENERAL_ERROR;
+	if (strings_match(argv[i], "-t") || strings_match(argv[i], "--type")) {
+	    if (argc == i + 1) {
+		printf("No type given. Use cman ls -h for more information\n");
+		return GENERAL_ERROR;
+	    }
+	    char *type = argv[i + 1];
+	    if (strings_match(type, "login")) {
+		args->flags = args->flags | LIST_FLAG_TYPE_LOGIN;
+	    } else if (strings_match(type, "api")) {
+		args->flags = args->flags | LIST_FLAG_TYPE_APIKEY;
+	    } else {
+		printf("Unknown type: %s. Use cman ls -h for more information.\n", type);
+		return GENERAL_ERROR;
+	    }
+	    i = i + 2; // skip checking the next argument.
+	    continue;
 	} else {
 	    printf("Unknown option: %s. Use cman ls -h for more information.\n", argv[i]);
 	    return GENERAL_ERROR;
@@ -372,7 +392,7 @@ int deleteArgParser(int argc, char **argv, void *arguments) {
 	    char *type = argv[i + 1];
 	    if (strings_match(type, "login")) {
 		args->flags = args->flags | DELETE_FLAG_TYPE_LOGIN;
-	    } else if (strings_match(type, "api_key")) {
+	    } else if (strings_match(type, "api")) {
 		args->flags = args->flags | DELETE_FLAG_TYPE_APIKEY;
 	    } else {
 		printf("Unknown type: %s. Use cman delete -h for more information.\n", type);
@@ -389,3 +409,4 @@ int deleteArgParser(int argc, char **argv, void *arguments) {
 
     return SUCCESS_OP;
 }
+
