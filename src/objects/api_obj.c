@@ -73,3 +73,4 @@ void destroyApiList(Api_list lst) {
 
     free(lst);
 }
+

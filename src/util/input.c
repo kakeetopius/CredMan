@@ -63,7 +63,8 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
     if (secret == 1)
 	set_secure_input(&oldt);
 
-    char temp_buff[64];
+    char temp_buff[128];
+    //first check if stdin is connected to an actual terminal and not a pipe or redirection
     int istty = isatty(STDIN_FILENO);
     if (istty) {
 	printf("%s: ", prompt);
@@ -95,7 +96,7 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
 
 	if (confirm == 1) {
 	    printf("Enter again to confirm: ");
-	    char temp_buff2[64];
+	    char temp_buff2[128];
 	    fgets(temp_buff2, sizeof(temp_buff2), stdin);
 	    printf("\n");
 	    // if input is too long the second time

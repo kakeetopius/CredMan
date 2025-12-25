@@ -6,10 +6,10 @@
 typedef int (*ArgParser)(int, char **, void *); // argv, argc, struct to fill with options
 
 struct Command {
-    char *name;
-    void *arguments;
-    ArgParser argparser;
-    Runner Run;
+    char *name;			//the name of the command eg add, get, ls, change
+    void *arguments;		//the arguments relevant to the command that will be cast to appropriate type by the runners
+    ArgParser argparser;	//a function in charge of parsing argv and initialise the relevant struct for the command
+    Runner Run;			//a function in charge of starting execution of the command.
 };
 
 extern struct Command commands[]; // static command objects array each having context about a particular subcommand like Get, ls etc.
@@ -29,11 +29,10 @@ struct GetArgs {
 };
 #define GET_FLAG_TYPE_LOGIN 0x0001
 #define GET_FLAG_TYPE_APIKEY 0x0002
-#define GET_FLAG_QUIET 0x0004
-#define GET_FLAG_FIELD_USERNAME 0x0008
-#define GET_FLAG_FIELD_PASS 0x0010
-#define GET_FLAG_FIELD_APISERVICE 0x0040
-#define GET_FLAG_FIELD_APIKEY 0x0080
+#define GET_FLAG_FIELD_USERNAME 0x0004
+#define GET_FLAG_FIELD_PASS 0x0008
+#define GET_FLAG_FIELD_APISERVICE 0x0010
+#define GET_FLAG_FIELD_APIKEY 0x0020
 
 struct ChangeArgs {
     char *secretName;
@@ -63,8 +62,6 @@ struct ListArgs {
 };
 #define LIST_FLAG_TYPE_LOGIN 0x0001
 #define LIST_FLAG_TYPE_APIKEY 0x0002
-
-int handle_input(int argc, char *argv[]);
 
 int parse_args(int argc, char *argv[], struct Command **command);
 int check_if_help_requested(char *arg);

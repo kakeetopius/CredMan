@@ -15,6 +15,10 @@ int add_apikey(struct AddArgs *args, sqlite3 *db) {
     }
     int status;
     char *api_name = args->secretName;
+    if (strlen(api_name) < 1) {
+	printf("Api name can't be empty\n");
+	return GENERAL_ERROR;
+    }
 
     if (check_apikey_exists(db, api_name) == DB_ROW_EXISTS) {
 	printf("Api Key %s already exists\n", api_name);
@@ -25,10 +29,10 @@ int add_apikey(struct AddArgs *args, sqlite3 *db) {
     char service[CRED_BUFF_LEN];
     char api_key[CRED_BUFF_LEN];
 
-    status = get_user_input(user_name, CRED_BUFF_LEN, "Enter the user name for the API Key", 0, 0);
+    status = get_user_input(user_name, CRED_BUFF_LEN, "Enter the user name associated with the API Key", 0, 0);
     if (status != SUCCESS_OP)
 	return GENERAL_ERROR;
-    status = get_user_input(service, CRED_BUFF_LEN, "Enter the service the API Key is for", 0, 0);
+    status = get_user_input(service, CRED_BUFF_LEN, "Enter the service the API Key is for or a brief description", 0, 0);
     if (status != SUCCESS_OP)
 	return GENERAL_ERROR;
     status = get_user_input(api_key, CRED_BUFF_LEN, "Enter the API Key", 0, 0);
@@ -153,10 +157,12 @@ int get_apikey_details(struct GetArgs *args, sqlite3 *db) {
 	print_result("Service:         ", key.service);
     else if (args->flags & GET_FLAG_FIELD_APIKEY)
 	print_result("Key:             ", key.key);
-    else {
-	print_result("User Name:       ", key.username);
+    else if (args->flags == 0) {
 	print_result("Service:         ", key.service);
+	print_result("User Name:       ", key.username);
 	print_result("Key:             ", key.key);
+    } else {
+	printf("Unknown field. Use cman get -h for more information.\n");
     }
 
     free(key.username);

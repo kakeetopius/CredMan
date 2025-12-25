@@ -23,7 +23,7 @@ typedef struct account {
 
 Account_list createAccList();
 
-int insert_acc(Account_list lst, char *name, char *pass, char *uname);
+int insert_acc_node(Account_list lst, char *name, char *pass, char *uname);
 
 void destroyAccList(Account_list lst);
 #endif

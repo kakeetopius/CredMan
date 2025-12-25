@@ -206,7 +206,7 @@ int create_new_database() {
 	sqlite3_free(errmsg);
 
     printf("New Credential Database Created Successfully at location: %s\n", DB_FILE);
-    printf("To add credentials \n%s\n", ADD_MESSAGE);
+    printf("To add credentials \n\n%s\n", ADD_MESSAGE);
     printf("Use cman help for more information\n");
 
     return SUCCESS_OP;

@@ -18,6 +18,10 @@ int add_account(struct AddArgs *args, sqlite3 *db) {
     }
     int status;
     char *account_name = args->secretName;
+    if (strlen(account_name) < 1) {
+	printf("Account name can't be empty\n");
+	return GENERAL_ERROR;
+    }
 
     if (check_account_exists(db, account_name) == DB_ROW_EXISTS) {
 	printf("Credentials For %s already exists\n", account_name);
@@ -227,10 +231,12 @@ int get_account_details(struct GetArgs *args, sqlite3 *db) {
 	print_result("User Name:       ", acc.username);
     else if (args->flags & GET_FLAG_FIELD_PASS)
 	print_result("Password:        ", acc.password);
-    else {
+    else if (args->flags == 0) {
 	print_result("Account:         ", acc.username);
 	print_result("User Name:       ", acc.username);
 	print_result("Password:        ", acc.password);
+    } else {
+	printf("Unknown Field. Use cman get -h for more details.\n");
     }
 
     free(acc.username);
@@ -295,7 +301,7 @@ int get_creds_from_batch_file(Account_list a_lst, char *batch_file_name) {
 	    line_no++;
 	    continue;
 	}
-	status = insert_acc(a_lst, acc_name, password, user_name);
+	status = insert_acc_node(a_lst, acc_name, password, user_name);
 	if (status != SUCCESS_OP) {
 	    fclose(batch_file);
 	    return GENERAL_ERROR;

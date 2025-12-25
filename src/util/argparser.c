@@ -32,6 +32,7 @@ int parse_args(int argc, char *argv[], struct Command **command) {
 	if (strcmp(argv[1], commands[i].name) == 0) {
 	    sub_command_found = 1;
 	    subcommand = &commands[i];
+	    break;
 	}
     }
     if (!sub_command_found) {
@@ -59,10 +60,12 @@ int parse_args(int argc, char *argv[], struct Command **command) {
 	return GENERAL_ERROR;
     }
 
+    //argparser parses argv and then initialises arguments with the neccessary info
     int status = subcommand->argparser(argc, argv, arguments);
     if (status != SUCCESS_OP) {
 	return status;
     }
+    //add the pointer to the arguments to the command struct for later used.
     subcommand->arguments = arguments;
 
     *command = subcommand; // initalise main's pointer to point to the correct command stuct.
@@ -250,7 +253,7 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 	return USER_REQUESTED_HELP;
     }
     args->flags = 0;
-    args->secretName = argv[2];
+    args->secretName = argv[2]; //guranteed to exist by the check above
 
     int i = 3; // start after secretName
     while (i < argc) {

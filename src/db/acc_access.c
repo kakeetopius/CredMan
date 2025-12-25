@@ -238,7 +238,7 @@ int get_all_db_accounts(sqlite3 *db, struct account_list *acc_list) {
 	unsigned const char *acc_name = sqlite3_column_text(pre_stmt, 0);
 	unsigned const char *user_name = sqlite3_column_text(pre_stmt, 1);
 	unsigned const char *pass = sqlite3_column_text(pre_stmt, 2);
-	int insert_status = insert_acc(acc_list, (char *)acc_name, (char *)pass, (char *)user_name);
+	int insert_status = insert_acc_node(acc_list, (char *)acc_name, (char *)pass, (char *)user_name);
 	if (insert_status != 0) {
 	    sqlite3_finalize(pre_stmt);
 	    return GENERAL_ERROR;

@@ -16,7 +16,7 @@ Account_list createAccList() {
     return lst;
 }
 
-int insert_acc(Account_list lst, char *name, char *pass, char *uname) {
+int insert_acc_node(Account_list lst, char *name, char *pass, char *uname) {
     if (lst == NULL) {
 	printf("Uninitialized account list\n");
 	return GENERAL_ERROR;
