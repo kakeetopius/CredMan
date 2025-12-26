@@ -1,0 +1,2 @@
+option('install_completions', type: 'boolean', value: false, description: 'Add bash completion scripts at install time.')
+

@@ -1,4 +1,4 @@
-project('credman', 'c')
+project('credman', 'c', meson_version: '>=1.1')
 
 sqlite_dep = dependency('sqlcipher')
 incdir = include_directories('include')
@@ -10,7 +10,7 @@ src_objects_dir = 'objects'
 src_util_dir = 'util'
 
 commands_srcs = ['acc_mgmt.c', 'api_mgmt.c', 'runners.c']
-db_srcs = ['acc_access.c', 'api_access.c', 'general.c' ]
+db_srcs = ['acc_access.c', 'api_access.c', 'general.c']
 objects_srcs = ['acc_obj.c', 'api_obj.c']
 util_srcs = ['argparser.c', 'input.c', 'output.c', 'passwd_gen.c']
 
@@ -36,6 +36,11 @@ foreach src_file : util_srcs
   srcs += src_file
 endforeach
 
+install_completions = get_option('install_completions')
+if install_completions
+  install_data(sources: 'cman_bash_completions.sh', install_dir: '/etc/bash_completion.d/')
+endif
+
 executable(
   'cman',
   sources: srcs,
@@ -43,5 +48,3 @@ executable(
   include_directories: incdir,
   install: true,
 )
-
-
