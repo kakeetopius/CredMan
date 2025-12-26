@@ -1,7 +1,7 @@
 # 🔐 CredMan
 
 CredMan is a lightweight credential manager that can be used to store securely and retrieve user secrets like login credentials and api keys locally. 
-It securely stores the secrets using an SQLCipher-encrypted SQLite database.  
+It securely stores the secrets using a special cryptographic build of SQLite database - [!https://www.zetetic.net/sqlcipher/design/]SQLCipher.  
 
 ---
 
