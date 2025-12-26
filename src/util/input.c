@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "util/errors.h"
+#include "util/argparser.h"
 
 void set_secure_input(struct termios *oldt) {
 #ifdef _WIN32
@@ -66,11 +67,18 @@ int get_user_input(char *buff, int buff_len, const char *prompt, int confirm, in
     char temp_buff[128];
     //first check if stdin is connected to an actual terminal and not a pipe or redirection
     int istty = isatty(STDIN_FILENO);
-    if (istty) {
+    int quiet = 0;
+    if (strcmp(current_command->name, "get") == 0) {
+        struct GetArgs *args = (struct GetArgs*)current_command->arguments;
+	if (args->flags & GET_FLAG_QUIET) {
+	    quiet = 1;
+	}
+    }
+    if (istty & !quiet) {
 	printf("%s: ", prompt);
     }
     fgets(temp_buff, sizeof(temp_buff), stdin);
-    if (istty)
+    if (istty & ! quiet)
 	printf("\n");
     int temp_buff_strlen;
 

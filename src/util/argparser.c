@@ -14,6 +14,8 @@ struct Command commands[] = {
     {.name = "delete", .argparser = deleteArgParser, .Run = runDelete},
 };
 
+struct Command *current_command;
+
 int num_of_commands = sizeof(commands) / sizeof(commands[0]);
 
 int parse_args(int argc, char *argv[], struct Command **command) {
@@ -60,15 +62,16 @@ int parse_args(int argc, char *argv[], struct Command **command) {
 	return GENERAL_ERROR;
     }
 
-    //argparser parses argv and then initialises arguments with the neccessary info
+    // argparser parses argv and then initialises arguments with the neccessary info
     int status = subcommand->argparser(argc, argv, arguments);
     if (status != SUCCESS_OP) {
 	return status;
     }
-    //add the pointer to the arguments to the command struct for later used.
+    // add the pointer to the arguments to the command struct for later used.
     subcommand->arguments = arguments;
 
     *command = subcommand; // initalise main's pointer to point to the correct command stuct.
+    current_command = subcommand;
     return SUCCESS_OP;
 }
 
@@ -145,6 +148,9 @@ int addArgParser(int argc, char **argv, void *arguments) {
 		continue;
 	    } else if (strings_match(argv[i], "--no-auto")) {
 		args->flags = args->flags | ADD_FLAG_NOAUTO;
+	    } else if (strings_match(argv[i], "-h") || strings_match(argv[i], "--help")) {
+		printf("%s", ADD_MESSAGE);
+		return USER_REQUESTED_HELP;
 	    } else {
 		printf("Unknown option: %s. Use cman add -h for more information.s\n", argv[i]);
 		return GENERAL_ERROR;
@@ -196,6 +202,10 @@ int getArgParser(int argc, char **argv, void *arguments) {
 		    args->flags = args->flags | GET_FLAG_FIELD_APISERVICE;
 		} else if (strings_match(field, "key")) {
 		    args->flags = args->flags | GET_FLAG_FIELD_APIKEY;
+		} else if (strings_match(field, "accname")) {
+		    args->flags = args->flags | GET_FLAG_FIELD_ACCNAME;
+		} else if (strings_match(field, "apiname")) {
+		    args->flags = args->flags | GET_FLAG_FIELD_APINAME;
 		} else {
 		    printf("Unknown field type: %s. Use cman get -h for more information.\n", field);
 		    return GENERAL_ERROR;
@@ -219,6 +229,11 @@ int getArgParser(int argc, char **argv, void *arguments) {
 		}
 		i = i + 2; // skip checking the next argument.
 		continue;
+	    } else if (strings_match(argv[i], "-q") || strings_match(argv[i], "--quiet")) {
+		args->flags = args->flags | GET_FLAG_QUIET;
+	    } else if (strings_match(argv[i], "-h") || strings_match(argv[i], "--help")) {
+		printf("%s", GET_MESSAGE);
+		return USER_REQUESTED_HELP;
 	    } else {
 		printf("Unknown option: %s. Use cman get -h for more information.\n", argv[i]);
 		return GENERAL_ERROR;
@@ -253,7 +268,7 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 	return USER_REQUESTED_HELP;
     }
     args->flags = 0;
-    args->secretName = argv[2]; //guranteed to exist by the check above
+    args->secretName = argv[2]; // guranteed to exist by the check above
 
     int i = 3; // start after secretName
     while (i < argc) {
@@ -306,6 +321,9 @@ int changeArgParser(int argc, char **argv, void *arguments) {
 		args->flags = args->flags | CHANGE_FLAG_NOAUTO;
 	    } else if (strings_match(argv[i], "--master")) {
 		args->flags = args->flags | CHANGE_FLAG_MASTER;
+	    } else if (strings_match(argv[i], "-h") || strings_match(argv[i], "--help")) {
+		printf("%s", CHANGE_MESSAGE);
+		return USER_REQUESTED_HELP;
 	    } else {
 		printf("Unknown option: %s. Use cman change -h for more information\n", argv[i]);
 		return GENERAL_ERROR;
@@ -355,6 +373,9 @@ int listArgParser(int argc, char **argv, void *arguments) {
 	    }
 	    i = i + 2; // skip checking the next argument.
 	    continue;
+	} else if (strings_match(argv[i], "-h") || strings_match(argv[i], "--help")) {
+	    printf("%s", LS_MESSAGE);
+	    return USER_REQUESTED_HELP;
 	} else {
 	    printf("Unknown option: %s. Use cman ls -h for more information.\n", argv[i]);
 	    return GENERAL_ERROR;
@@ -402,6 +423,9 @@ int deleteArgParser(int argc, char **argv, void *arguments) {
 	    }
 	    i = i + 2; // skip checking the next argument.
 	    continue;
+	} else if (strings_match(argv[i], "-h") || strings_match(argv[i], "--help")) {
+	    printf("%s", DELETE_MESSAGE);
+	    return USER_REQUESTED_HELP;
 	} else {
 	    printf("Unknown option: %s. Use cman delete -h for more information.\n", argv[i]);
 	    return GENERAL_ERROR;

@@ -6,13 +6,15 @@
 typedef int (*ArgParser)(int, char **, void *); // argv, argc, struct to fill with options
 
 struct Command {
-    char *name;			//the name of the command eg add, get, ls, change
-    void *arguments;		//the arguments relevant to the command that will be cast to appropriate type by the runners
-    ArgParser argparser;	//a function in charge of parsing argv and initialise the relevant struct for the command
-    Runner Run;			//a function in charge of starting execution of the command.
+    char *name;		 // the name of the command eg add, get, ls, change
+    void *arguments;	 // the arguments relevant to the command that will be cast to appropriate type by the runners
+    ArgParser argparser; // a function in charge of parsing argv and initialise the relevant struct for the command
+    Runner Run;		 // a function in charge of starting execution of the command.
 };
 
 extern struct Command commands[]; // static command objects array each having context about a particular subcommand like Get, ls etc.
+
+extern struct Command *current_command;
 
 struct AddArgs {
     char *secretName;
@@ -33,6 +35,9 @@ struct GetArgs {
 #define GET_FLAG_FIELD_PASS 0x0008
 #define GET_FLAG_FIELD_APISERVICE 0x0010
 #define GET_FLAG_FIELD_APIKEY 0x0020
+#define GET_FLAG_QUIET 0x0040
+#define GET_FLAG_FIELD_ACCNAME 0x0080
+#define GET_FLAG_FIELD_APINAME 0x0100
 
 struct ChangeArgs {
     char *secretName;

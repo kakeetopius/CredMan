@@ -157,6 +157,8 @@ int get_apikey_details(struct GetArgs *args, sqlite3 *db) {
 	print_result("Service:         ", key.service);
     else if (args->flags & GET_FLAG_FIELD_APIKEY)
 	print_result("Key:             ", key.key);
+    else if (args->flags & GET_FLAG_FIELD_APINAME)
+	print_result("API Name:        ", key.name);
     else if (args->flags == 0) {
 	print_result("Service:         ", key.service);
 	print_result("User Name:       ", key.username);

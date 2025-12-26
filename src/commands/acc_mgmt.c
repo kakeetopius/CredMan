@@ -231,6 +231,8 @@ int get_account_details(struct GetArgs *args, sqlite3 *db) {
 	print_result("User Name:       ", acc.username);
     else if (args->flags & GET_FLAG_FIELD_PASS)
 	print_result("Password:        ", acc.password);
+    else if (args->flags & GET_FLAG_FIELD_ACCNAME)
+	print_result("Acc Name:         ", acc.name);
     else if (args->flags == 0) {
 	print_result("Account:         ", acc.username);
 	print_result("User Name:       ", acc.username);
