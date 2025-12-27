@@ -23,12 +23,16 @@ sudo apt install meson ninja-build libsqlcipher-dev     # or any preferred packa
 git clone https://github.com/kakeetopius/credman.git credman
 cd credman
 
-#Build
-meson setup build && cd build
-meson compile
+#Set up Build
+meson setup build 
+#or if bash auto completions are wanted
+meson setup build -Dinstall_completions=true
+
+#Compile
+meson compile -C build
 
 #Optionally install to path
-sudo meson install
+sudo meson install -C build
 ```
 
 > [!NOTE]
