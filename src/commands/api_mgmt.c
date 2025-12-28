@@ -151,20 +151,21 @@ int get_apikey_details(struct GetArgs *args, sqlite3 *db) {
     if (status != SUCCESS_OP) {
 	return GENERAL_ERROR;
     }
-    if (args->flags & GET_FLAG_FIELD_USERNAME)
+
+    int get_flags = args->flags & (GET_FLAG_FIELD_USERNAME | GET_FLAG_FIELD_APISERVICE | GET_FLAG_FIELD_APIKEY | GET_FLAG_FIELD_APINAME);
+
+    if (get_flags & GET_FLAG_FIELD_USERNAME)
 	print_result("User Name:       ", key.username);
-    else if (args->flags & GET_FLAG_FIELD_APISERVICE)
+    else if (get_flags & GET_FLAG_FIELD_APISERVICE)
 	print_result("Service:         ", key.service);
-    else if (args->flags & GET_FLAG_FIELD_APIKEY)
+    else if (get_flags & GET_FLAG_FIELD_APIKEY)
 	print_result("Key:             ", key.key);
-    else if (args->flags & GET_FLAG_FIELD_APINAME)
+    else if (get_flags & GET_FLAG_FIELD_APINAME)
 	print_result("API Name:        ", key.name);
-    else if (args->flags == 0) {
+    else {
 	print_result("Service:         ", key.service);
 	print_result("User Name:       ", key.username);
 	print_result("Key:             ", key.key);
-    } else {
-	printf("Unknown field. Use cman get -h for more information.\n");
     }
 
     free(key.username);

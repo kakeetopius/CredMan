@@ -227,18 +227,19 @@ int get_account_details(struct GetArgs *args, sqlite3 *db) {
     if (status != SUCCESS_OP) {
 	return GENERAL_ERROR;
     }
-    if (args->flags & GET_FLAG_FIELD_USERNAME)
+
+    int get_flags = args->flags & (GET_FLAG_FIELD_USERNAME | GET_FLAG_FIELD_PASS | GET_FLAG_FIELD_ACCNAME);
+
+    if (get_flags & GET_FLAG_FIELD_USERNAME)
 	print_result("User Name:       ", acc.username);
-    else if (args->flags & GET_FLAG_FIELD_PASS)
+    else if (get_flags & GET_FLAG_FIELD_PASS)
 	print_result("Password:        ", acc.password);
-    else if (args->flags & GET_FLAG_FIELD_ACCNAME)
+    else if (get_flags & GET_FLAG_FIELD_ACCNAME)
 	print_result("Acc Name:         ", acc.name);
-    else if (args->flags == 0) {
-	print_result("Account:         ", acc.username);
+    else {
+	print_result("Account:         ", acc.name);
 	print_result("User Name:       ", acc.username);
 	print_result("Password:        ", acc.password);
-    } else {
-	printf("Unknown Field. Use cman get -h for more details.\n");
     }
 
     free(acc.username);
